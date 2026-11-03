@@ -61,20 +61,22 @@ async function startServer() {
 
 const stats = (page) => page.evaluate(() => window.__matrixHands);
 
-/** Share of pixels that are bright, strongly green: a proxy for lit hand outlines. */
-const brightGreenShare = (page) =>
-  page.evaluate(() => {
-    const src = document.querySelector('canvas[data-engine]') ?? document.querySelector('canvas');
+/** Share of screenshot pixels that are bright, strongly green: a proxy for lit hand outlines. */
+const brightGreenShare = (page, png) =>
+  page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
     const c = document.createElement('canvas');
-    c.width = 360;
-    c.height = Math.round((360 * src.height) / src.width);
+    c.width = 480;
+    c.height = Math.round((480 * img.height) / img.width);
     const ctx = c.getContext('2d');
-    ctx.drawImage(src, 0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
     const d = ctx.getImageData(0, 0, c.width, c.height).data;
     let n = 0;
     for (let i = 0; i < d.length; i += 4) if (d[i + 1] > 170 && d[i + 1] > d[i] + 50 && d[i + 1] > d[i + 2] + 30) n++;
     return n / (d.length / 4);
-  });
+  }, `data:image/png;base64,${png.toString('base64')}`);
 
 async function run(scenario) {
   const video = buildFixture(scenario.fixture);
@@ -110,12 +112,11 @@ async function run(scenario) {
   }
   await page.waitForTimeout(4000);
   const s = await stats(page);
-  const green = await brightGreenShare(page);
-
   await page.screenshot({ path: path.join(OUT, `${scenario.name}-debug.png`) });
-  await page.addStyleTag({ content: '.debug-video, #stats-panel { display: none !important; }' });
+  await page.addStyleTag({ content: '.debug-video, .stats-panel { display: none !important; }' });
   await page.waitForTimeout(300);
-  await page.screenshot({ path: path.join(OUT, `${scenario.name}.png`) });
+  const png = await page.screenshot({ path: path.join(OUT, `${scenario.name}.png`) });
+  const green = await brightGreenShare(page, png);
   await browser.close();
 
   const checks = [

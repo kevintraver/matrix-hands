@@ -4,7 +4,7 @@ import type { HandTracker } from '../tracking/handTracker';
 const HAND_COLORS = { Left: '#4dff88', Right: '#ffd24d' } as const;
 
 /** `?debug` only: the raw webcam with tracked landmarks drawn over it. */
-export function DebugVideo({ tracker }: { tracker: HandTracker }) {
+export function DebugVideo({ tracker, handCanvas }: { tracker: HandTracker; handCanvas: HTMLCanvasElement }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -15,6 +15,8 @@ export function DebugVideo({ tracker }: { tracker: HandTracker }) {
     const restore = video.style.cssText;
     video.style.cssText = '';
     box.prepend(video);
+    box.append(handCanvas);
+    handCanvas.className = 'debug-hand';
     const ctx = canvas.getContext('2d')!;
     let raf = 0;
     const draw = () => {
@@ -36,8 +38,9 @@ export function DebugVideo({ tracker }: { tracker: HandTracker }) {
       cancelAnimationFrame(raf);
       video.style.cssText = restore;
       document.body.appendChild(video);
+      handCanvas.remove();
     };
-  }, [tracker]);
+  }, [tracker, handCanvas]);
 
   return (
     <div ref={boxRef} className="debug-video">
