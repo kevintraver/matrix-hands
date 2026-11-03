@@ -11,7 +11,10 @@ function context2d(width: number, height: number): CanvasRenderingContext2D {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  return canvas.getContext('2d')!;
+  // CPU-backed on purpose: with GPU-accelerated 2D canvases next to the WebGL contexts, Chrome
+  // composited stale silhouettes from earlier frames into the outline. The texture is re-uploaded
+  // every update anyway, so a CPU canvas costs nothing extra.
+  return canvas.getContext('2d', { willReadFrequently: true })!;
 }
 
 /** One canvas texture shared by every screen, redrawn at most once per tracker frame. */
