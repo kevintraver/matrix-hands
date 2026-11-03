@@ -1,0 +1,267 @@
+[
+  {
+    "name": "desktop-hand",
+    "stats": {
+      "state": "running",
+      "delegate": "GPU",
+      "hands": 2,
+      "detections": 7,
+      "framesWithHands": 7,
+      "fps": 0,
+      "tier": "desktop",
+      "motion": 0,
+      "pulses": 0,
+      "pulsesSpawned": 0
+    },
+    "brightGreenShare": 0.00561,
+    "flow": {
+      "maxPulses": 0,
+      "maxMotion": 0,
+      "spawned": 0,
+      "endPulses": 0,
+      "pulsesAtScreenshot": 0
+    },
+    "hotSpots": [],
+    "errors": [],
+    "foreign": [],
+    "blockedByPolicy": 4,
+    "checks": [
+      [
+        "tracker running",
+        true
+      ],
+      [
+        "detected >= 1 hand",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ],
+      [
+        "no response from another origin",
+        true
+      ],
+      [
+        "page cannot reach the telemetry endpoint",
+        true
+      ]
+    ]
+  },
+  {
+    "name": "desktop-nohand",
+    "stats": {
+      "state": "running",
+      "delegate": "GPU",
+      "hands": 0,
+      "detections": 15,
+      "framesWithHands": 0,
+      "fps": 0,
+      "tier": "desktop",
+      "motion": 0,
+      "pulses": 0,
+      "pulsesSpawned": 0
+    },
+    "brightGreenShare": 0.00009,
+    "flow": {
+      "maxPulses": 0,
+      "maxMotion": 0,
+      "spawned": 0,
+      "endPulses": 0,
+      "pulsesAtScreenshot": 0
+    },
+    "hotSpots": [],
+    "errors": [],
+    "foreign": [],
+    "blockedByPolicy": 4,
+    "checks": [
+      [
+        "tracker running",
+        true
+      ],
+      [
+        "no hands detected",
+        true
+      ],
+      [
+        "no hand: no pulses start or fly",
+        true
+      ],
+      [
+        "no static glow in the trunk and cable region",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ],
+      [
+        "no response from another origin",
+        true
+      ],
+      [
+        "page cannot reach the telemetry endpoint",
+        true
+      ]
+    ]
+  },
+  {
+    "name": "iphone14-hand",
+    "stats": {
+      "state": "running",
+      "delegate": "GPU",
+      "hands": 2,
+      "detections": 11,
+      "framesWithHands": 11,
+      "fps": 1,
+      "tier": "mobile",
+      "motion": 0.162,
+      "pulses": 1,
+      "pulsesSpawned": 4
+    },
+    "brightGreenShare": 0.00925,
+    "flow": {
+      "maxPulses": 2,
+      "maxMotion": 0.223,
+      "spawned": 2,
+      "endPulses": 2,
+      "pulsesAtScreenshot": 2
+    },
+    "hotSpots": [],
+    "errors": [],
+    "foreign": [],
+    "blockedByPolicy": 2,
+    "checks": [
+      [
+        "tracker running",
+        true
+      ],
+      [
+        "detected >= 1 hand",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ],
+      [
+        "no response from another origin",
+        true
+      ],
+      [
+        "page cannot reach the telemetry endpoint",
+        true
+      ]
+    ]
+  },
+  {
+    "name": "flow-moving",
+    "stats": {
+      "state": "running",
+      "delegate": "GPU",
+      "hands": 2,
+      "detections": 15,
+      "framesWithHands": 15,
+      "fps": 1,
+      "tier": "desktop",
+      "motion": 0.174,
+      "pulses": 4,
+      "pulsesSpawned": 10
+    },
+    "brightGreenShare": 0.00537,
+    "flow": {
+      "maxPulses": 4,
+      "maxMotion": 0.174,
+      "spawned": 2,
+      "endPulses": 2,
+      "pulsesAtScreenshot": 1
+    },
+    "hotSpots": [],
+    "errors": [],
+    "foreign": [],
+    "blockedByPolicy": 2,
+    "checks": [
+      [
+        "tracker running",
+        true
+      ],
+      [
+        "detected >= 1 hand",
+        true
+      ],
+      [
+        "moving hand starts pulses, with two in flight before the screenshot",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ],
+      [
+        "no response from another origin",
+        true
+      ],
+      [
+        "page cannot reach the telemetry endpoint",
+        true
+      ]
+    ]
+  },
+  {
+    "name": "flow-still",
+    "stats": {
+      "state": "running",
+      "delegate": "GPU",
+      "hands": 2,
+      "detections": 14,
+      "framesWithHands": 14,
+      "fps": 1,
+      "tier": "desktop",
+      "motion": 0,
+      "pulses": 0,
+      "pulsesSpawned": 0
+    },
+    "brightGreenShare": 0.00471,
+    "flow": {
+      "maxPulses": 0,
+      "maxMotion": 0,
+      "spawned": 0,
+      "endPulses": 0,
+      "pulsesAtScreenshot": 0
+    },
+    "hotSpots": [],
+    "errors": [],
+    "foreign": [],
+    "blockedByPolicy": 2,
+    "checks": [
+      [
+        "tracker running",
+        true
+      ],
+      [
+        "detected >= 1 hand",
+        true
+      ],
+      [
+        "still hand: from 2 s after detection, motion < 0.05 and no pulses start or fly",
+        true
+      ],
+      [
+        "no static glow in the trunk and cable region",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ],
+      [
+        "no response from another origin",
+        true
+      ],
+      [
+        "page cannot reach the telemetry endpoint",
+        true
+      ]
+    ]
+  }
+]
