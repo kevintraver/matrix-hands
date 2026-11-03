@@ -9,6 +9,9 @@ export type Quality = {
   readonly handTexSize: number;
   readonly bloom: { readonly intensity: number; readonly levels: number };
   readonly detectHz: number;
+  readonly msaa: number;
+  /** Device-tilt parallax (asks for motion permission on ENTER). */
+  readonly tilt: boolean;
   readonly tree: TreeShape;
 };
 
@@ -20,7 +23,9 @@ export const QUALITY: Record<Tier, Quality> = {
     handTexSize: 512,
     bloom: { intensity: 1.1, levels: 7 },
     detectHz: 60,
-    tree: { rx: 5.2, ry: 2.9, trunkHalf: 0.75, trunkHeight: 3.4 },
+    msaa: 4,
+    tilt: false,
+    tree: { rx: 6.6, ry: 2.5, trunkHalf: 0.9, trunkHeight: 3.2 },
   },
   mobile: {
     units: 20,
@@ -29,7 +34,9 @@ export const QUALITY: Record<Tier, Quality> = {
     handTexSize: 256,
     bloom: { intensity: 0.9, levels: 5 },
     detectHz: 30,
-    tree: { rx: 2.6, ry: 2.9, trunkHalf: 0.65, trunkHeight: 2.6 },
+    msaa: 0,
+    tilt: true,
+    tree: { rx: 2.6, ry: 2.9, trunkHalf: 0.75, trunkHeight: 2.6 },
   },
 };
 
