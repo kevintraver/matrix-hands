@@ -38,6 +38,7 @@ const FLOW = { viewport: { width: 960, height: 600 }, deviceScaleFactor: 1 };
 // camera: flow 'moving' requires cable pulses, 'still' and 'none' require dark cables, 'report' only logs.
 // colors: reloads the page with and without ?seed= and compares the colour seeds it reports.
 // orbit: drags the camera around the tree, tests its limits and idle drift, and checks the rain behind it.
+// record: records with the button and the r key, saves the video, and inspects the file with ffprobe and ffmpeg.
 const SCENARIOS = [
   { name: 'desktop-hand', kind: 'camera', fixture: 'hand', context: DESKTOP, expectHands: true, flow: 'report' },
   { name: 'desktop-nohand', kind: 'camera', fixture: 'nohand', context: DESKTOP, expectHands: false, flow: 'none' },
@@ -46,6 +47,7 @@ const SCENARIOS = [
   { name: 'flow-still', kind: 'camera', fixture: 'still', context: FLOW, expectHands: true, flow: 'still' },
   { name: 'colors-reload', kind: 'colors', fixture: 'nohand', context: FLOW },
   { name: 'orbit', kind: 'orbit', fixture: 'nohand', context: FLOW },
+  { name: 'record', kind: 'record', fixture: 'hand', context: { ...FLOW, acceptDownloads: true } },
 ];
 
 /** Headless renders at about 1 fps, so in-flight counts are tiny; `spawned` counts pulses started in the window. */
@@ -420,7 +422,118 @@ async function runOrbit(scenario) {
   };
 }
 
-const RUNNERS = { camera: runCamera, colors: runColors, orbit: runOrbit };
+const recordButton = (page) => page.locator('button.record');
+
+/** Stream facts and one mid-video frame's green share, read with ffprobe and ffmpeg from the saved file. */
+function inspectVideo(file) {
+  const probe = JSON.parse(
+    execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', file], { encoding: 'utf8' }),
+  );
+  const video = probe.streams.find((s) => s.codec_type === 'video');
+  // MediaRecorder WebM carries no duration header, so take it from the last packet's timestamp.
+  const pts = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'packet=pts_time', '-of', 'csv=p=0', file], {
+    encoding: 'utf8',
+  })
+    .split('\n')
+    .map(Number)
+    .filter((t) => Number.isFinite(t) && t > 0);
+  const duration = Number(probe.format.duration) || Math.max(0, ...pts);
+  const frame = file.replace(/\.\w+$/, '-frame.png');
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(duration / 2), '-i', file, '-frames:v', '1', frame]);
+  const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', frame, '-vf', 'scale=240:-2', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']);
+  let green = 0;
+  for (let i = 0; i < raw.length; i += 3) if (raw[i + 1] > 60 && raw[i + 1] > raw[i] + 25 && raw[i + 1] > raw[i + 2] + 15) green++;
+  return {
+    codec: video?.codec_name,
+    width: video?.width,
+    height: video?.height,
+    duration,
+    packets: pts.length,
+    sizeBytes: Number(probe.format.size),
+    greenShare: green / (raw.length / 3),
+    frame,
+  };
+}
+
+async function runRecord(scenario) {
+  const { browser, page, errors } = await openSession(scenario);
+  const dialogs = [];
+  page.on('dialog', (d) => {
+    dialogs.push(d.message());
+    d.accept();
+  });
+  await page.goto(`${BASE}?debug&seed=1987`);
+  const hiddenBeforeEnter = (await recordButton(page).count()) === 0;
+  await page.getByRole('button', { name: 'ENTER' }).click();
+  await page.waitForFunction(() => (window.__matrixHands?.framesWithHands ?? 0) >= 3, null, { timeout: 90_000 });
+  const canvasSize = await page.evaluate(() => {
+    const c = document.querySelector('canvas');
+    return { width: c.width, height: c.height };
+  });
+
+  await recordButton(page).click();
+  const pressed = await recordButton(page).getAttribute('aria-pressed');
+  const before = await stats(page);
+  await page.waitForTimeout(3000);
+  const box = await page.locator('canvas').first().boundingBox();
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForFunction((from) => window.__matrixHands.detections > from + 1, before.detections, { timeout: 60_000 });
+  const timer = await recordButton(page).textContent();
+  await page.screenshot({ path: path.join(OUT, `${scenario.name}-recording.png`) });
+  const during = await stats(page);
+  await recordButton(page).click();
+  await page.getByRole('dialog', { name: 'Your video' }).waitFor({ timeout: 60_000 });
+  const meta = await page.locator('.video-meta').textContent();
+  await page.screenshot({ path: path.join(OUT, `${scenario.name}-ready.png`) });
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Save' }).click()]);
+  const suggested = download.suggestedFilename();
+  const saved = path.join(OUT, `recording-sample${path.extname(suggested)}`);
+  await download.saveAs(saved);
+
+  await page.keyboard.press('r');
+  await page.waitForFunction(() => document.querySelector('button.record')?.getAttribute('aria-pressed') === 'true', null, { timeout: 10_000 });
+  const keyStarted = dialogs.length === 1;
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('r');
+  await page.getByRole('dialog', { name: 'Your video' }).waitFor({ timeout: 60_000 });
+  await page.keyboard.press('Alt+r');
+  await page.waitForTimeout(1000);
+  const ignoredModifier = dialogs.length === 1;
+  await page.getByRole('button', { name: 'Discard' }).click();
+  const discarded = (await page.getByRole('dialog', { name: 'Your video' }).count()) === 0;
+  await browser.close();
+
+  const video = inspectVideo(saved);
+  return {
+    name: scenario.name,
+    summary:
+      `saved ${suggested} (${video.sizeBytes} bytes, ${video.codec} ${video.width}x${video.height}, ${video.duration.toFixed(2)} s, ` +
+      `${video.packets} frames at headless fps ${during.fps}); canvas ${canvasSize.width}x${canvasSize.height}; popover "${meta}"; ` +
+      `frame green share ${video.greenShare.toFixed(4)}; while recording: detections ${before.detections}->${during.detections}, ` +
+      `pulses started ${before.pulsesSpawned}->${during.pulsesSpawned}, azimuth ${before.camera.azimuth}->${during.camera.azimuth}`,
+    video,
+    errors,
+    checks: [
+      ['Record is hidden until ENTER', hiddenBeforeEnter],
+      ['the button starts a recording and shows a running timer', pressed === 'true' && /\d\d:\d\d/.test(timer ?? '')],
+      ['tracking and pulses keep running while recording', during.detections > before.detections && during.pulsesSpawned > before.pulsesSpawned],
+      ['dragging still orbits while recording', Math.abs(during.camera.azimuth - before.camera.azimuth) > 1],
+      ['Save downloads matrix-hands-YYYY-MM-DD-HHMM.<mp4|webm>', /^matrix-hands-\d{4}-\d\d-\d\d-\d{4}\.(mp4|webm)$/.test(suggested)],
+      ['the file has a video stream longer than 1 s', Boolean(video.codec) && video.duration > 1 && video.sizeBytes > 0],
+      ['video dimensions match the canvas', video.width === canvasSize.width && video.height === canvasSize.height],
+      ['a mid-video frame shows the green scene, not black', video.greenShare > 0.005],
+      ['r over a ready video confirms, then records again', keyStarted],
+      ['r with a modifier does nothing', ignoredModifier],
+      ['Discard closes the video', discarded],
+      ['no page errors', errors.length === 0],
+    ],
+  };
+}
+
+const RUNNERS = { camera: runCamera, colors: runColors, orbit: runOrbit, record: runRecord };
 
 const only = process.argv.slice(2);
 const server = await startServer();

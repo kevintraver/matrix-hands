@@ -109,3 +109,149 @@ canvas {
 .debug-video .debug-hand {
   border-top: 1px solid var(--green-dim);
 }
+
+.record {
+  position: fixed;
+  left: calc(16px + env(safe-area-inset-left));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 6;
+  min-height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 14px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--green-dim);
+  box-shadow: 0 0 12px rgba(77, 255, 136, 0.2);
+  text-shadow: 0 0 8px rgba(77, 255, 136, 0.6);
+  cursor: pointer;
+}
+
+.record:hover,
+.record:focus-visible {
+  border-color: var(--green);
+  outline: none;
+}
+
+.record-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3b4e;
+  box-shadow: 0 0 8px rgba(255, 59, 78, 0.8);
+}
+
+.record[aria-pressed='true'] {
+  color: #ff8a95;
+  border-color: #ff3b4e;
+  box-shadow: 0 0 14px rgba(255, 59, 78, 0.35);
+  text-shadow: none;
+}
+
+.record[aria-pressed='true'] .record-dot {
+  border-radius: 2px;
+  animation: blink 1s steps(1) infinite;
+}
+
+.record:disabled {
+  cursor: progress;
+  color: var(--green-dim);
+}
+
+.record-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.popover.video {
+  position: fixed;
+  left: calc(16px + env(safe-area-inset-left));
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 7;
+  width: min(420px, calc(100% - 32px));
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--mono);
+  color: var(--green);
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid var(--green-dim);
+  box-shadow: 0 0 24px rgba(77, 255, 136, 0.18);
+}
+
+.popover-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.popover-head h2 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(77, 255, 136, 0.6);
+}
+
+.video-meta {
+  font-size: 12px;
+  color: var(--green-dim);
+}
+
+.popover-head .close {
+  margin-left: auto;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--green-dim);
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.popover.video video {
+  width: 100%;
+  max-height: 40vh;
+  background: #000;
+  border: 1px solid #0d2a18;
+}
+
+.video-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.video-actions button,
+.video-actions .save {
+  min-height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  font: 600 13px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: none;
+  border: 1px solid var(--green-dim);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.video-actions .save {
+  color: #000;
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 12px rgba(77, 255, 136, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record[aria-pressed='true'] .record-dot {
+    animation: none;
+  }
+}

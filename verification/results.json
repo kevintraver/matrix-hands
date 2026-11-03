@@ -503,5 +503,70 @@
         true
       ]
     ]
+  },
+  {
+    "name": "record",
+    "summary": "saved matrix-hands-2026-11-03-1914.mp4 (668665 bytes, h264 960x600, 41.71 s, 26 frames at headless fps 1); canvas 960x600; popover \"00:45 · 0.7 MB\"; frame green share 0.0484; while recording: detections 18->57, pulses started 13->39, azimuth -3.06->-86.22",
+    "video": {
+      "codec": "h264",
+      "width": 960,
+      "height": 600,
+      "duration": 41.7058,
+      "packets": 26,
+      "sizeBytes": 668665,
+      "greenShare": 0.04836111111111111,
+      "frame": "/home/user/matrix-hands/verification/recording-sample-frame.png"
+    },
+    "errors": [],
+    "checks": [
+      [
+        "Record is hidden until ENTER",
+        true
+      ],
+      [
+        "the button starts a recording and shows a running timer",
+        true
+      ],
+      [
+        "tracking and pulses keep running while recording",
+        true
+      ],
+      [
+        "dragging still orbits while recording",
+        true
+      ],
+      [
+        "Save downloads matrix-hands-YYYY-MM-DD-HHMM.<mp4|webm>",
+        true
+      ],
+      [
+        "the file has a video stream longer than 1 s",
+        true
+      ],
+      [
+        "video dimensions match the canvas",
+        true
+      ],
+      [
+        "a mid-video frame shows the green scene, not black",
+        true
+      ],
+      [
+        "r over a ready video confirms, then records again",
+        true
+      ],
+      [
+        "r with a modifier does nothing",
+        true
+      ],
+      [
+        "Discard closes the video",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ]
+    ]
   }
 ]
