@@ -6,6 +6,8 @@ export type Quality = {
   readonly units: number;
   readonly cables: number;
   readonly dpr: readonly [number, number];
+  /** Lower the pixel ratio within `dpr` when the frame rate drops. */
+  readonly adaptiveDpr: boolean;
   readonly handTexSize: number;
   readonly bloom: { readonly intensity: number; readonly levels: number };
   readonly detectHz: number;
@@ -20,6 +22,7 @@ export const QUALITY: Record<Tier, Quality> = {
     units: 40,
     cables: 60,
     dpr: [1, 2],
+    adaptiveDpr: false,
     handTexSize: 512,
     bloom: { intensity: 1.1, levels: 7 },
     detectHz: 60,
@@ -31,6 +34,7 @@ export const QUALITY: Record<Tier, Quality> = {
     units: 20,
     cables: 25,
     dpr: [1, 1.5],
+    adaptiveDpr: true,
     handTexSize: 256,
     bloom: { intensity: 0.9, levels: 5 },
     detectHz: 30,

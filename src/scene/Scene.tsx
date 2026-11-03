@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Stats } from '@react-three/drei';
+import { PerformanceMonitor, Stats } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
 import { DEBUG } from '../debug';
 import type { Quality } from '../quality';
 import type { HandTexture } from '../screen/handTexture';
@@ -20,9 +21,18 @@ type Props = { tracker: HandTracker; hand: HandTexture; quality: Quality; seed: 
 export function Scene({ tracker, hand, quality, seed }: Props) {
   const layout = useMemo(() => createLayout(quality.units, quality.tree, seed), [quality, seed]);
   const flow = useMemo<Flow>(() => ({ motion: 0 }), []);
+  const setDpr = useThree((s) => s.setDpr);
+  const [minDpr, maxDpr] = quality.dpr;
   return (
     <>
       <fog attach="fog" args={['#000', 18, 45]} />
+      {quality.adaptiveDpr && (
+        <PerformanceMonitor
+          flipflops={3}
+          onChange={({ factor }) => setDpr(minDpr + (maxDpr - minDpr) * factor)}
+          onFallback={() => setDpr(minDpr)}
+        />
+      )}
       <HandFrameReader tracker={tracker} hand={hand} flow={flow} />
       <CameraRig layout={layout} />
       <hemisphereLight args={['#9fb8a4', '#020402', 0.35]} />
