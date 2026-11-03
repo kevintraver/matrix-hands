@@ -1,21 +1,21 @@
 [
   {
     "name": "desktop-hand",
-    "summary": "delegate=GPU tier=desktop hands=2 detections=6 framesWithHands=6 fps(headless, software GL)=0 brightGreenShare=0.00653 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=8 framesWithHands=8 fps(headless, software GL)=0 brightGreenShare=0.00683 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 6,
-      "framesWithHands": 6,
+      "detections": 8,
+      "framesWithHands": 8,
       "fps": 0,
       "tier": "desktop",
       "colorSeed": 1540484694,
-      "motion": 0,
+      "motion": 0.066,
       "pulses": 0,
-      "pulsesSpawned": 0,
+      "pulsesSpawned": 1,
       "camera": {
-        "azimuth": -2.26,
+        "azimuth": -1.26,
         "polar": 90,
         "distance": 12.166,
         "minDistance": 5.752,
@@ -25,7 +25,7 @@
         "drifting": true
       }
     },
-    "brightGreenShare": 0.00653,
+    "brightGreenShare": 0.00683,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -62,21 +62,21 @@
   },
   {
     "name": "desktop-nohand",
-    "summary": "delegate=GPU tier=desktop hands=0 detections=15 framesWithHands=0 fps(headless, software GL)=1 brightGreenShare=0.00022 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
+    "summary": "delegate=GPU tier=desktop hands=0 detections=17 framesWithHands=0 fps(headless, software GL)=0 brightGreenShare=0.00046 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 0,
-      "detections": 15,
+      "detections": 17,
       "framesWithHands": 0,
-      "fps": 1,
+      "fps": 0,
       "tier": "desktop",
       "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
       "pulsesSpawned": 0,
       "camera": {
-        "azimuth": -2.7,
+        "azimuth": -3.58,
         "polar": 90,
         "distance": 12.166,
         "minDistance": 5.752,
@@ -86,7 +86,7 @@
         "drifting": true
       }
     },
-    "brightGreenShare": 0.00022,
+    "brightGreenShare": 0.00046,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -131,21 +131,21 @@
   },
   {
     "name": "iphone14-hand",
-    "summary": "delegate=GPU tier=mobile hands=2 detections=10 framesWithHands=10 fps(headless, software GL)=1 brightGreenShare=0.01392 maxMotion=0.196 pulsesStarted=1 maxPulsesInFlight=2 pulsesAtScreenshot=1",
+    "summary": "delegate=GPU tier=mobile hands=2 detections=11 framesWithHands=11 fps(headless, software GL)=1 brightGreenShare=0.01473 maxMotion=0.257 pulsesStarted=1 maxPulsesInFlight=2 pulsesAtScreenshot=1",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 10,
-      "framesWithHands": 10,
+      "detections": 11,
+      "framesWithHands": 11,
       "fps": 1,
       "tier": "mobile",
       "colorSeed": 1540484694,
-      "motion": 0,
+      "motion": 0.166,
       "pulses": 1,
-      "pulsesSpawned": 2,
+      "pulsesSpawned": 3,
       "camera": {
-        "azimuth": -1.62,
+        "azimuth": -1.8,
         "polar": 90,
         "distance": 12.065,
         "minDistance": 4.442,
@@ -155,10 +155,10 @@
         "drifting": true
       }
     },
-    "brightGreenShare": 0.01392,
+    "brightGreenShare": 0.01473,
     "flow": {
       "maxPulses": 2,
-      "maxMotion": 0.196,
+      "maxMotion": 0.257,
       "spawned": 1,
       "endPulses": 1,
       "pulsesAtScreenshot": 1
@@ -192,25 +192,37 @@
   },
   {
     "name": "flow-moving",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=16 framesWithHands=16 fps(headless, software GL)=1 brightGreenShare=0.00682 maxMotion=0.136 pulsesStarted=2 maxPulsesInFlight=2 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 15,
-      "framesWithHands": 15,
+      "detections": 16,
+      "framesWithHands": 16,
       "fps": 1,
       "tier": "desktop",
-      "motion": 0.14,
-      "pulses": 2,
-      "pulsesSpawned": 8
+      "colorSeed": 1540484694,
+      "motion": 0.175,
+      "pulses": 1,
+      "pulsesSpawned": 10,
+      "camera": {
+        "azimuth": -2.7,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": true
+      }
     },
-    "brightGreenShare": 0.00485,
+    "brightGreenShare": 0.00682,
     "flow": {
       "maxPulses": 2,
-      "maxMotion": 0.224,
+      "maxMotion": 0.136,
       "spawned": 2,
       "endPulses": 2,
-      "pulsesAtScreenshot": 1
+      "pulsesAtScreenshot": 0
     },
     "hotSpots": [],
     "errors": [],
@@ -245,13 +257,13 @@
   },
   {
     "name": "flow-still",
-    "summary": "delegate=GPU tier=desktop hands=2 detections=13 framesWithHands=13 fps(headless, software GL)=1 brightGreenShare=0.00608 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=15 framesWithHands=15 fps(headless, software GL)=1 brightGreenShare=0.00626 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 13,
-      "framesWithHands": 13,
+      "detections": 15,
+      "framesWithHands": 15,
       "fps": 1,
       "tier": "desktop",
       "colorSeed": 1540484694,
@@ -259,7 +271,7 @@
       "pulses": 0,
       "pulsesSpawned": 0,
       "camera": {
-        "azimuth": -2.16,
+        "azimuth": -2.52,
         "polar": 90,
         "distance": 12.166,
         "minDistance": 5.752,
@@ -269,7 +281,7 @@
         "drifting": true
       }
     },
-    "brightGreenShare": 0.00608,
+    "brightGreenShare": 0.00626,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -314,11 +326,11 @@
   },
   {
     "name": "colors-reload",
-    "summary": "colour seeds without ?seed=: 855183754, 2104830290; with ?seed=1987: 1540484694, 1540484694",
+    "summary": "colour seeds without ?seed=: 2107759785, 601919542; with ?seed=1987: 1540484694, 1540484694",
     "colorSeeds": {
       "unseeded": [
-        855183754,
-        2104830290
+        2107759785,
+        601919542
       ],
       "seeded": [
         1540484694,
@@ -343,48 +355,48 @@
   },
   {
     "name": "orbit",
-    "summary": "azimuth start=-1.43 after quarter drag=-94.5 (turned 93.1) after second drag=174.06 (turned 175.5); polar range seen 31.51-96.76 (limits 31.51-96.76); distance near=5.752 far=17.032 (limits 5.752-17.032); idle drift turned 0.53 deg; rain pixels per column: 0: [107,160,68,299,268,88,192,87] 90: [6,61,221,811,95,92,151,45] 180: [43,196,109,252,337,191,127,73]",
+    "summary": "azimuth start=-1.43 after quarter drag=-94.5 (turned 93.1) after second drag=174.06 (turned 175.5); polar range seen 31.51-96.76 (limits 31.51-96.76); distance near=5.752 far=17.032 (limits 5.752-17.032); idle drift turned 0.53 deg; rain pixels per column: 0: [50,199,45,264,300,126,143,135] 90: [39,117,191,824,65,108,115,98] 180: [67,148,175,266,273,137,128,20]",
     "views": [
       {
         "label": "0",
         "azimuth": -1.43,
         "rain": [
-          107,
-          160,
-          68,
-          299,
-          268,
-          88,
-          192,
-          87
+          50,
+          199,
+          45,
+          264,
+          300,
+          126,
+          143,
+          135
         ]
       },
       {
         "label": "90",
         "azimuth": -94.5,
         "rain": [
-          6,
-          61,
-          221,
-          811,
-          95,
-          92,
-          151,
-          45
+          39,
+          117,
+          191,
+          824,
+          65,
+          108,
+          115,
+          98
         ]
       },
       {
         "label": "180",
         "azimuth": 174.06,
         "rain": [
-          43,
-          196,
-          109,
-          252,
-          337,
-          191,
-          127,
-          73
+          67,
+          148,
+          175,
+          266,
+          273,
+          137,
+          128,
+          20
         ]
       }
     ],
@@ -440,7 +452,7 @@
         "drifting": false
       },
       "near": {
-        "azimuth": 172.26,
+        "azimuth": 172.44,
         "polar": 96.76,
         "distance": 5.752,
         "minDistance": 5.752,
@@ -450,7 +462,7 @@
         "drifting": false
       },
       "far": {
-        "azimuth": 172.26,
+        "azimuth": 172.44,
         "polar": 96.76,
         "distance": 17.032,
         "minDistance": 5.752,
@@ -506,15 +518,15 @@
   },
   {
     "name": "record",
-    "summary": "saved matrix-hands-2026-11-03-1914.mp4 (668665 bytes, h264 960x600, 41.71 s, 26 frames at headless fps 1); canvas 960x600; popover \"00:45 · 0.7 MB\"; frame green share 0.0484; while recording: detections 18->57, pulses started 13->39, azimuth -3.06->-86.22",
+    "summary": "saved matrix-hands-2026-11-03-1927.mp4 (645931 bytes, h264 960x600, 36.43 s, 25 frames at headless fps 1); canvas 960x600; popover \"00:40 · 0.6 MB\"; frame green share 0.0351; while recording: detections 17->54, pulses started 11->39, azimuth -2.88->-86.04",
     "video": {
       "codec": "h264",
       "width": 960,
       "height": 600,
-      "duration": 41.7058,
-      "packets": 26,
-      "sizeBytes": 668665,
-      "greenShare": 0.04836111111111111,
+      "duration": 36.430267,
+      "packets": 25,
+      "sizeBytes": 645931,
+      "greenShare": 0.035083333333333334,
       "frame": "/home/user/matrix-hands/verification/recording-sample-frame.png"
     },
     "errors": [],

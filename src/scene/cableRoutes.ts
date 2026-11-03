@@ -40,7 +40,7 @@ const TRUNK = {
 
 /**
  * A box cables must clear, in a frame where it spans x in ±w/2, y in [0, h] and z in ±d/2: a unit's size
- * box as `Cluster` places it, or the air in front of its screen.
+ * box as `Cluster` places it, or the air in front of a screen unit's face.
  */
 type Obstacle = {
   readonly unit: number;
