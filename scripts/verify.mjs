@@ -97,13 +97,20 @@ async function run(scenario) {
   const context = await browser.newContext({ ...scenario.context, permissions: ['camera'] });
   const page = await context.newPage();
   const errors = [];
+  const blockedByPolicy = [];
   const foreign = new Set();
+  const isForeign = (raw) => {
+    const url = new URL(raw);
+    return !['localhost', '127.0.0.1'].includes(url.hostname) && !['data:', 'blob:'].includes(url.protocol);
+  };
   page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  page.on('request', (r) => {
-    const url = new URL(r.url());
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) && url.protocol !== 'data:' && url.protocol !== 'blob:') foreign.add(r.url());
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    // MediaPipe's usage logger is expected to be refused by the page's Content-Security-Policy.
+    if (/odml\.pa\.googleapis\.com/.test(m.text()) && /Content Security Policy/.test(m.text())) blockedByPolicy.push(m.text());
+    else errors.push(m.text());
   });
+  page.on('response', (r) => isForeign(r.url()) && foreign.add(r.url()));
 
   await page.goto(`${BASE}?debug`);
   await page.getByRole('button', { name: 'ENTER' }).click();
@@ -115,6 +122,9 @@ async function run(scenario) {
   }
   await page.waitForTimeout(4000);
   const s = await stats(page);
+  const telemetryProbe = await page.evaluate(() =>
+    fetch('https://odml.pa.googleapis.com/v1/log', { method: 'POST', body: 'probe' }).then(() => 'sent', () => 'refused'),
+  );
   await page.screenshot({ path: path.join(OUT, `${scenario.name}-debug.png`) });
   await page.addStyleTag({ content: '.debug-video, .stats-panel { display: none !important; }' });
   await page.waitForTimeout(300);
@@ -128,9 +138,18 @@ async function run(scenario) {
       ? ['detected >= 1 hand', s.framesWithHands >= 1 && s.hands >= 1]
       : ['no hands detected', s.framesWithHands === 0 && s.hands === 0],
     ['no page errors', errors.length === 0],
-    ['only same-origin requests', foreign.size === 0],
+    ['no response from another origin', foreign.size === 0],
+    ['page cannot reach the telemetry endpoint', telemetryProbe === 'refused'],
   ];
-  return { name: scenario.name, stats: s, brightGreenShare: Number(green.toFixed(5)), errors, foreign: [...foreign], checks };
+  return {
+    name: scenario.name,
+    stats: s,
+    brightGreenShare: Number(green.toFixed(5)),
+    errors,
+    foreign: [...foreign],
+    blockedByPolicy: blockedByPolicy.length,
+    checks,
+  };
 }
 
 const only = process.argv.slice(2);
@@ -145,7 +164,8 @@ try {
       `fps(headless, software GL)=${r.stats.fps} brightGreenShare=${r.brightGreenShare}`);
     for (const [label, ok] of r.checks) console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}`);
     if (r.errors.length) console.log('  errors:', r.errors.slice(0, 5));
-    if (r.foreign.length) console.log('  foreign requests:', r.foreign);
+    if (r.foreign.length) console.log('  responses from other origins:', r.foreign);
+    if (r.blockedByPolicy) console.log(`  telemetry attempts refused by CSP: ${r.blockedByPolicy}`);
   }
 } finally {
   server.kill();
