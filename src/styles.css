@@ -1,0 +1,106 @@
+:root {
+  color-scheme: dark;
+  --green: #4dff88;
+  --green-dim: #1f8a45;
+  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.85));
+  font-family: var(--mono);
+  color: var(--green);
+  text-shadow: 0 0 8px rgba(77, 255, 136, 0.7);
+  padding: 16px;
+  text-align: center;
+  z-index: 10;
+}
+
+.overlay p {
+  margin: 0 0 20px;
+  max-width: 34ch;
+  line-height: 1.5;
+  font-size: 14px;
+  color: var(--green-dim);
+  text-shadow: none;
+}
+
+.overlay button {
+  font: inherit;
+  font-size: clamp(22px, 5vw, 34px);
+  letter-spacing: 0.3em;
+  padding: 14px 28px 14px calc(28px + 0.3em);
+  color: var(--green);
+  background: transparent;
+  border: 1px solid var(--green);
+  box-shadow: 0 0 16px rgba(77, 255, 136, 0.35), inset 0 0 12px rgba(77, 255, 136, 0.2);
+  cursor: pointer;
+  text-shadow: inherit;
+}
+
+.overlay button:hover,
+.overlay button:focus-visible {
+  background: rgba(77, 255, 136, 0.1);
+  outline: none;
+}
+
+.cursor::after {
+  content: '_';
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.debug-video {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: min(280px, 40vw);
+  border: 1px solid var(--green-dim);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.debug-video video,
+.debug-video canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.debug-video video {
+  transform: scaleX(-1);
+}
+
+.debug-video canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
