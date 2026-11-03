@@ -1,33 +1,78 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Vector3, type PerspectiveCamera } from 'three';
-import { listenPointer, parallax } from '../input/parallax';
+import { MathUtils, type PerspectiveCamera } from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { reportDebug } from '../debug';
+import { ORBIT, frameTree } from './framing';
 import type { Layout } from './layout';
 
-/** Frames the whole tree for the viewport aspect, then adds a slow drift and viewer parallax. */
+/** Whether the viewer is steering, has let go, or has left the camera alone long enough for it to drift. */
+type Drift = { kind: 'held' } | { kind: 'idle'; since: number } | { kind: 'drifting' };
+
+/** Drag to circle the tree, pinch or scroll to zoom; left alone, the camera slowly drifts around it. */
 export function CameraRig({ layout }: { layout: Layout }) {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const domElement = useThree((s) => s.gl.domElement);
   const size = useThree((s) => s.size);
-  const smoothed = useRef({ x: 0, y: 0 });
-  const target = useRef(new Vector3());
-  useEffect(listenPointer, []);
-  useFrame(({ camera, clock }, delta) => {
-    const cam = camera as PerspectiveCamera;
-    const tan = Math.tan((cam.fov * Math.PI) / 360);
-    const aspect = size.width / size.height;
-    const dist = Math.max((layout.height * 0.72) / tan, (layout.width * 0.66) / (tan * aspect)) + 1.2;
-    const centerY = layout.height * 0.47;
-    const t = clock.elapsedTime;
-    const s = smoothed.current;
-    const k = 1 - Math.exp(-delta * 2.5);
-    s.x += (parallax.x - s.x) * k;
-    s.y += (parallax.y - s.y) * k;
-    const swing = dist * 0.09;
-    cam.position.set(
-      Math.sin(t * 0.07) * swing * 0.6 + s.x * swing,
-      centerY + Math.sin(t * 0.05) * swing * 0.25 - s.y * swing * 0.5,
-      dist + Math.sin(t * 0.04) * 0.4,
-    );
-    cam.lookAt(target.current.set(s.x * 0.3, centerY, 0));
+  const controls = useMemo(() => new OrbitControls(camera, domElement), [camera, domElement]);
+  const drift = useRef<Drift>({ kind: 'idle', since: performance.now() });
+  const aspect = useRef(size.width / size.height);
+  aspect.current = size.width / size.height;
+
+  useEffect(() => {
+    const framing = frameTree(layout, aspect.current, camera.fov);
+    controls.target.copy(framing.target);
+    camera.position.set(framing.target.x, framing.target.y, framing.target.z + framing.distance);
+    Object.assign(controls, {
+      enablePan: false,
+      enableDamping: true,
+      rotateSpeed: ORBIT.rotateSpeed,
+      zoomSpeed: ORBIT.zoomSpeed,
+      minDistance: framing.minDistance,
+      maxDistance: framing.maxDistance,
+      minPolarAngle: framing.minPolar,
+      maxPolarAngle: framing.maxPolar,
+      autoRotateSpeed: ORBIT.idleDrift?.speed ?? 0,
+    });
+    controls.update();
+    const hold = () => {
+      drift.current = { kind: 'held' };
+      controls.autoRotate = false;
+    };
+    const release = () => {
+      drift.current = { kind: 'idle', since: performance.now() };
+    };
+    controls.addEventListener('start', hold);
+    controls.addEventListener('end', release);
+    return () => {
+      controls.removeEventListener('start', hold);
+      controls.removeEventListener('end', release);
+    };
+  }, [controls, camera, layout]);
+
+  useEffect(() => () => controls.dispose(), [controls]);
+
+  useFrame((_, delta) => {
+    const d = drift.current;
+    if (ORBIT.idleDrift && d.kind === 'idle' && performance.now() - d.since >= ORBIT.idleDrift.afterMs) {
+      drift.current = { kind: 'drifting' };
+      controls.autoRotate = true;
+    }
+    controls.dampingFactor = 1 - Math.exp(-delta * ORBIT.damping);
+    // The drift steps through at most `maxStep` per frame, so after a stall (a hidden tab) it resumes instead of leaping.
+    controls.update(Math.min(delta, ORBIT.maxStep));
+    reportDebug({
+      camera: {
+        azimuth: Number(MathUtils.radToDeg(controls.getAzimuthalAngle()).toFixed(2)),
+        polar: Number(MathUtils.radToDeg(controls.getPolarAngle()).toFixed(2)),
+        distance: Number(controls.getDistance().toFixed(3)),
+        minDistance: Number(controls.minDistance.toFixed(3)),
+        maxDistance: Number(controls.maxDistance.toFixed(3)),
+        minPolar: Number(MathUtils.radToDeg(controls.minPolarAngle).toFixed(2)),
+        maxPolar: Number(MathUtils.radToDeg(controls.maxPolarAngle).toFixed(2)),
+        drifting: drift.current.kind === 'drifting',
+      },
+    });
   });
   return null;
 }

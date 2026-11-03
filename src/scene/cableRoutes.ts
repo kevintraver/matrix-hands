@@ -1,6 +1,6 @@
 import { CatmullRomCurve3, Euler, Matrix4, Quaternion, Vector3 } from 'three';
 import { PORT_FACES, UNITS } from './computers';
-import type { Layout } from './layout';
+import { TREE_CENTER_Z, type Layout } from './layout';
 import { mulberry32, range, type Rng } from './rng';
 
 export type CableRoute = {
@@ -32,7 +32,7 @@ const ROUTING = {
 
 /** Where the bundle runs down: an ellipse around the two stacking layers. */
 const TRUNK = {
-  centerZ: -0.25,
+  centerZ: TREE_CENTER_Z,
   radiusZ: 1.0,
   /** Descent angles from +x toward the back, per side. Never the front, where the trunk's screens face. */
   arcs: { right: [-0.6, Math.PI / 2], left: [Math.PI / 2, Math.PI + 0.6] },

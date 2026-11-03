@@ -17,6 +17,17 @@ export type DebugStats = {
   pulses: number;
   /** Started since load. */
   pulsesSpawned: number;
+  /** Degrees and world units, as OrbitControls reports them. */
+  camera: {
+    azimuth: number;
+    polar: number;
+    distance: number;
+    minDistance: number;
+    maxDistance: number;
+    minPolar: number;
+    maxPolar: number;
+    drifting: boolean;
+  } | null;
 };
 
 declare global {
@@ -41,6 +52,7 @@ export function reportDebug(patch: Partial<DebugStats>): void {
       motion: 0,
       pulses: 0,
       pulsesSpawned: 0,
+      camera: null,
     }),
     ...patch,
   };

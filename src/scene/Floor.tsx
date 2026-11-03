@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { CanvasTexture, SRGBColorSpace } from 'three';
 
-/** Unlit: a dim pool under the tree that fades to black well before its edge, so there is no horizon. */
+/** Unlit: a dim pool centred under the tree that fades to black well before its edge, so there is no horizon from any side. */
 function createFade(): CanvasTexture {
   const size = 256;
   const canvas = document.createElement('canvas');
@@ -18,10 +18,10 @@ function createFade(): CanvasTexture {
   return texture;
 }
 
-export function Floor({ radius }: { radius: number }) {
+export function Floor({ radius, centerZ }: { radius: number; centerZ: number }) {
   const map = useMemo(createFade, []);
   return (
-    <mesh rotation-x={-Math.PI / 2} position={[0, 0, 1]}>
+    <mesh rotation-x={-Math.PI / 2} position={[0, 0, centerZ]}>
       <circleGeometry args={[radius, 64]} />
       <meshBasicMaterial map={map} />
     </mesh>

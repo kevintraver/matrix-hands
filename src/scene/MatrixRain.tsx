@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CanvasTexture, LinearFilter, ShaderMaterial, Vector2 } from 'three';
+import { BackSide, CanvasTexture, LinearFilter, ShaderMaterial, Vector2 } from 'three';
 
 const ATLAS_CELLS = 8;
 const CELL_PX = 64;
 const GLYPHS = 'ｦｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789:=*+<>¦';
-const GLYPH_SIZE = 0.42;
+const GLYPH_SIZE = 0.7;
 
 /** Drawn once: an 8x8 grid of mirrored half-width katakana and digits, white on transparent. */
 function createAtlas(): CanvasTexture {
@@ -69,33 +69,38 @@ void main() {
 const vertexShader = /* glsl */ `
 varying vec2 vUv;
 void main() {
-  vUv = uv;
+  // Seen from inside, the cylinder's u runs right to left; flip it so glyphs keep their mirrored look.
+  vUv = vec2(1.0 - uv.x, uv.y);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 
-/** Background only: a single plane far behind the tree, so the rain never reaches a screen. */
-export function MatrixRain({ width, height, z }: { width: number; height: number; z: number }) {
+/**
+ * Background only: the inside of a cylinder around the whole scene, so rain fills the view from any
+ * angle and never reaches a screen. Its glyph columns wrap seamlessly around the circumference.
+ */
+export function MatrixRain({ radius, height, bottom, centerZ }: { radius: number; height: number; bottom: number; centerZ: number }) {
   const material = useMemo(
     () =>
       new ShaderMaterial({
         vertexShader,
         fragmentShader,
+        side: BackSide,
         toneMapped: false,
         uniforms: {
           uAtlas: { value: createAtlas() },
           uTime: { value: 0 },
-          uGrid: { value: new Vector2(Math.round(width / GLYPH_SIZE), Math.round(height / GLYPH_SIZE)) },
+          uGrid: { value: new Vector2(Math.round((2 * Math.PI * radius) / GLYPH_SIZE), Math.round(height / GLYPH_SIZE)) },
         },
       }),
-    [width, height],
+    [radius, height],
   );
   useFrame(({ clock }) => {
     material.uniforms.uTime!.value = clock.elapsedTime;
   });
   return (
-    <mesh position={[0, height / 2 - 2, z]} material={material}>
-      <planeGeometry args={[width, height]} />
+    <mesh position={[0, bottom + height / 2, centerZ]} material={material}>
+      <cylinderGeometry args={[radius, radius, height, 128, 1, true]} />
     </mesh>
   );
 }

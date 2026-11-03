@@ -14,7 +14,8 @@ import { HandFrameReader } from './HandFrameReader';
 import { Effects } from './Effects';
 import { Floor } from './Floor';
 import { assignFinishes } from './finishes';
-import { createLayout } from './layout';
+import { ORBIT } from './framing';
+import { TREE_CENTER_Z, createLayout } from './layout';
 import { MatrixRain } from './MatrixRain';
 import { mulberry32 } from './rng';
 
@@ -46,13 +47,15 @@ export function Scene({ tracker, hand, quality, seed, colorSeed }: Props) {
       <HandFrameReader tracker={tracker} hand={hand} flow={flow} />
       <CameraRig layout={layout} />
       <hemisphereLight args={['#9fb8a4', '#020402', 0.35]} />
+      {/* Warm keys from the front and the back so the housings keep their colour from any side; green rims from behind. */}
       <directionalLight position={[-5, 9, 8]} intensity={1.1} color="#fff1dc" />
-      <directionalLight position={[2, 6, -8]} intensity={1.6} color="#3dff7a" />
+      <directionalLight position={[6, 8, -9]} intensity={0.8} color="#fff1dc" />
+      <directionalLight position={[2, 6, -8]} intensity={0.9} color="#3dff7a" />
       <pointLight position={[0, layout.height * 0.6, 3]} intensity={6} distance={14} color="#4dff88" />
       <Cluster layout={layout} finishes={finishes} hand={hand.texture} />
       <Cables layout={layout} count={quality.cables} flow={flow} />
-      <MatrixRain width={70} height={44} z={-14} />
-      <Floor radius={Math.max(layout.width, layout.height) * 2.5} />
+      <MatrixRain radius={ORBIT.rainRadius} height={50} bottom={-4} centerZ={TREE_CENTER_Z} />
+      <Floor radius={Math.max(layout.width, layout.height) * 2.5} centerZ={TREE_CENTER_Z} />
       <Effects quality={quality} />
       {DEBUG && <FpsMeter />}
       {DEBUG && <Stats className="stats-panel" />}

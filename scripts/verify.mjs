@@ -37,6 +37,7 @@ const FLOW = { viewport: { width: 960, height: 600 }, deviceScaleFactor: 1 };
 
 // camera: flow 'moving' requires cable pulses, 'still' and 'none' require dark cables, 'report' only logs.
 // colors: reloads the page with and without ?seed= and compares the colour seeds it reports.
+// orbit: drags the camera around the tree, tests its limits and idle drift, and checks the rain behind it.
 const SCENARIOS = [
   { name: 'desktop-hand', kind: 'camera', fixture: 'hand', context: DESKTOP, expectHands: true, flow: 'report' },
   { name: 'desktop-nohand', kind: 'camera', fixture: 'nohand', context: DESKTOP, expectHands: false, flow: 'none' },
@@ -44,6 +45,7 @@ const SCENARIOS = [
   { name: 'flow-moving', kind: 'camera', fixture: 'hand', context: FLOW, expectHands: true, flow: 'moving' },
   { name: 'flow-still', kind: 'camera', fixture: 'still', context: FLOW, expectHands: true, flow: 'still' },
   { name: 'colors-reload', kind: 'colors', fixture: 'nohand', context: FLOW },
+  { name: 'orbit', kind: 'orbit', fixture: 'nohand', context: FLOW },
 ];
 
 /** Headless renders at about 1 fps, so in-flight counts are tiny; `spawned` counts pulses started in the window. */
@@ -285,7 +287,140 @@ async function runColors(scenario) {
   };
 }
 
-const RUNNERS = { camera: runCamera, colors: runColors };
+/** Signed change from `from` to `to` in degrees, folded into (-180, 180]. */
+const turn = (from, to) => {
+  const d = (((to - from) % 360) + 540) % 360 - 180;
+  return d === -180 ? 180 : d;
+};
+
+/** Polls the camera until it stops moving, so damping has finished applying a drag. */
+async function settledCamera(page) {
+  let last = (await stats(page)).camera;
+  for (let i = 0; i < 120; i++) {
+    await page.waitForTimeout(500);
+    const now = (await stats(page)).camera;
+    if (Math.abs(turn(last.azimuth, now.azimuth)) < 0.3 && Math.abs(now.polar - last.polar) < 0.3 && Math.abs(now.distance - last.distance) < 0.02) return now;
+    last = now;
+  }
+  return last;
+}
+
+async function drag(page, dx, dy) {
+  const box = await page.locator('canvas').first().boundingBox();
+  const x = box.x + box.width / 2 - dx / 2;
+  const y = box.y + box.height / 2 - dy / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx, y + dy, { steps: 12 });
+  await page.mouse.up();
+}
+
+/**
+ * Rain glyph pixels in eight columns of the upper background. Rain is sparse, so one column can be
+ * briefly empty; a rain plane that ends, or sits behind the camera, blanks several side by side.
+ */
+const rainColumns = (page, png) =>
+  page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const w = 480;
+    const h = Math.round((w * img.height) / img.width);
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, Math.floor(h * 0.45)).data;
+    const columns = new Array(8).fill(0);
+    for (let i = 0; i < d.length; i += 4) {
+      const [r, g, b] = [d[i], d[i + 1], d[i + 2]];
+      if (g > 45 && g > r * 1.5 && g > b * 1.2) columns[Math.floor((((i / 4) % w) / w) * 8)]++;
+    }
+    return columns;
+  }, `data:image/png;base64,${png.toString('base64')}`);
+
+async function runOrbit(scenario) {
+  const { browser, page, errors } = await openSession(scenario);
+  await page.goto(`${BASE}?debug&seed=1987`);
+  await page.getByRole('button', { name: 'ENTER' }).click();
+  await page.waitForFunction(() => window.__matrixHands?.state === 'running', null, { timeout: 90_000 });
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('.debug-video, .stats-panel')) el.style.visibility = 'hidden';
+  });
+  const height = (await page.locator('canvas').first().boundingBox()).height;
+  // OrbitControls turns 2π per canvas height of drag, scaled by rotateSpeed (0.7).
+  const pxPerQuarter = (height / 0.7) / 4;
+  const views = [];
+  const shoot = async (label, camera) => {
+    const png = await page.screenshot({ path: path.join(OUT, `${scenario.name}-${label}.png`) });
+    views.push({ label, azimuth: camera.azimuth, rain: await rainColumns(page, png) });
+  };
+  const start = await settledCamera(page);
+  await shoot('0', start);
+  await drag(page, pxPerQuarter, 0);
+  const quarter = await settledCamera(page);
+  await shoot('90', quarter);
+  await drag(page, pxPerQuarter, 0);
+  const half = await settledCamera(page);
+  await shoot('180', half);
+
+  // Each vertical drag spans 0.8 canvas heights, which turns ~200 deg: far past either limit.
+  await drag(page, 0, height * 0.8);
+  const top = await settledCamera(page);
+  await drag(page, 0, -height * 0.8);
+  const bottom = await settledCamera(page);
+  const box = await page.locator('canvas').first().boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < 30; i++) await page.mouse.wheel(0, -400);
+  const near = await settledCamera(page);
+  for (let i = 0; i < 40; i++) await page.mouse.wheel(0, 400);
+  const far = await settledCamera(page);
+
+  await page.waitForFunction(() => window.__matrixHands?.camera?.drifting === true, null, { timeout: 60_000 });
+  const driftFrom = (await stats(page)).camera.azimuth;
+  await page.waitForFunction((from) => Math.abs(window.__matrixHands.camera.azimuth - from) > 0.2, driftFrom, { timeout: 60_000 }).catch(() => {});
+  const drifted = Math.abs(turn(driftFrom, (await stats(page)).camera.azimuth));
+  await page.mouse.down();
+  // The debug hook updates once per rendered frame, so read the first frame after the press.
+  const heldDrifting = await page
+    .waitForFunction(() => window.__matrixHands.camera.drifting === false, null, { timeout: 15_000 })
+    .then(() => false, () => true);
+  await page.mouse.up();
+  await browser.close();
+
+  const q = Math.abs(turn(start.azimuth, quarter.azimuth));
+  const h = Math.abs(turn(start.azimuth, half.azimuth));
+  const c = far;
+  return {
+    name: scenario.name,
+    summary:
+      `azimuth start=${start.azimuth} after quarter drag=${quarter.azimuth} (turned ${q.toFixed(1)}) after second drag=${half.azimuth} ` +
+      `(turned ${h.toFixed(1)}); polar range seen ${top.polar}-${bottom.polar} (limits ${c.minPolar}-${c.maxPolar}); ` +
+      `distance near=${near.distance} far=${far.distance} (limits ${c.minDistance}-${c.maxDistance}); idle drift turned ${drifted.toFixed(2)} deg; ` +
+      `rain pixels per column: ${views.map((v) => `${v.label}: [${v.rain.join(',')}]`).join(' ')}`,
+    views,
+    camera: { start, quarter, half, top, bottom, near, far },
+    errors,
+    checks: [
+      ['a quarter-height drag turns the camera about 90 deg', Math.abs(q - 90) < 20],
+      ['a second drag reaches the far side, about 180 deg from the start', h > 160],
+      [
+        'rain fills the background from the front, side and back: no two neighbouring columns empty',
+        views.every((v) => v.rain.every((n, i) => n >= 8 || (v.rain[i + 1] ?? 8) >= 8)),
+      ],
+      ['dragging down tilts up to the top limit, short of straight overhead', Math.abs(top.polar - c.minPolar) < 1 && top.polar > 20],
+      ['dragging up tilts down to the bottom limit, above the floor', Math.abs(bottom.polar - c.maxPolar) < 1 && bottom.polar < 100],
+      ['zooming in stops at the limit outside every unit', Math.abs(near.distance - c.minDistance) < 0.01],
+      ['zooming out stops at the limit inside the rain', Math.abs(far.distance - c.maxDistance) < 0.01],
+      ['left alone, the camera drifts', drifted > 0],
+      ['pressing the pointer stops the drift at once', heldDrifting === false],
+      ['no page errors', errors.length === 0],
+    ],
+  };
+}
+
+const RUNNERS = { camera: runCamera, colors: runColors, orbit: runOrbit };
 
 const only = process.argv.slice(2);
 const server = await startServer();

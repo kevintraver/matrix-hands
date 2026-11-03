@@ -1,21 +1,31 @@
 [
   {
     "name": "desktop-hand",
-    "summary": "delegate=GPU tier=desktop hands=2 detections=7 framesWithHands=7 fps(headless, software GL)=0 brightGreenShare=0.00601 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=6 framesWithHands=6 fps(headless, software GL)=0 brightGreenShare=0.00653 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 7,
-      "framesWithHands": 7,
+      "detections": 6,
+      "framesWithHands": 6,
       "fps": 0,
       "tier": "desktop",
       "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
-      "pulsesSpawned": 0
+      "pulsesSpawned": 0,
+      "camera": {
+        "azimuth": -2.26,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": true
+      }
     },
-    "brightGreenShare": 0.00601,
+    "brightGreenShare": 0.00653,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -52,21 +62,31 @@
   },
   {
     "name": "desktop-nohand",
-    "summary": "delegate=GPU tier=desktop hands=0 detections=15 framesWithHands=0 fps(headless, software GL)=0 brightGreenShare=0.00035 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
+    "summary": "delegate=GPU tier=desktop hands=0 detections=15 framesWithHands=0 fps(headless, software GL)=1 brightGreenShare=0.00022 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 0,
       "detections": 15,
       "framesWithHands": 0,
-      "fps": 0,
+      "fps": 1,
       "tier": "desktop",
       "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
-      "pulsesSpawned": 0
+      "pulsesSpawned": 0,
+      "camera": {
+        "azimuth": -2.7,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": true
+      }
     },
-    "brightGreenShare": 0.00035,
+    "brightGreenShare": 0.00022,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -111,6 +131,7 @@
   },
   {
     "name": "iphone14-hand",
+    "summary": "delegate=GPU tier=mobile hands=2 detections=11 framesWithHands=11 fps(headless, software GL)=1 brightGreenShare=0.01402 maxMotion=0.219 pulsesStarted=1 maxPulsesInFlight=2 pulsesAtScreenshot=1",
     "stats": {
       "state": "running",
       "delegate": "GPU",
@@ -119,17 +140,28 @@
       "framesWithHands": 11,
       "fps": 1,
       "tier": "mobile",
-      "motion": 0.162,
+      "colorSeed": 1540484694,
+      "motion": 0.129,
       "pulses": 1,
-      "pulsesSpawned": 4
+      "pulsesSpawned": 3,
+      "camera": {
+        "azimuth": -1.8,
+        "polar": 90,
+        "distance": 12.065,
+        "minDistance": 4.442,
+        "maxDistance": 16.891,
+        "minPolar": 31.51,
+        "maxPolar": 96.69,
+        "drifting": true
+      }
     },
-    "brightGreenShare": 0.00925,
+    "brightGreenShare": 0.01402,
     "flow": {
       "maxPulses": 2,
-      "maxMotion": 0.223,
-      "spawned": 2,
-      "endPulses": 2,
-      "pulsesAtScreenshot": 2
+      "maxMotion": 0.219,
+      "spawned": 1,
+      "endPulses": 1,
+      "pulsesAtScreenshot": 1
     },
     "hotSpots": [],
     "errors": [],
@@ -213,21 +245,31 @@
   },
   {
     "name": "flow-still",
-    "summary": "delegate=GPU tier=desktop hands=2 detections=15 framesWithHands=15 fps(headless, software GL)=1 brightGreenShare=0.00506 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=13 framesWithHands=13 fps(headless, software GL)=1 brightGreenShare=0.00608 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 15,
-      "framesWithHands": 15,
+      "detections": 13,
+      "framesWithHands": 13,
       "fps": 1,
       "tier": "desktop",
       "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
-      "pulsesSpawned": 0
+      "pulsesSpawned": 0,
+      "camera": {
+        "azimuth": -2.16,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": true
+      }
     },
-    "brightGreenShare": 0.00506,
+    "brightGreenShare": 0.00608,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -291,6 +333,169 @@
       ],
       [
         "two loads with ?seed= paint the same colours",
+        true
+      ],
+      [
+        "no page errors",
+        true
+      ]
+    ]
+  },
+  {
+    "name": "orbit",
+    "summary": "azimuth start=-1.43 after quarter drag=-94.5 (turned 93.1) after second drag=174.06 (turned 175.5); polar range seen 31.51-96.76 (limits 31.51-96.76); distance near=5.752 far=17.032 (limits 5.752-17.032); idle drift turned 0.53 deg; rain pixels per column: 0: [107,160,68,299,268,88,192,87] 90: [6,61,221,811,95,92,151,45] 180: [43,196,109,252,337,191,127,73]",
+    "views": [
+      {
+        "label": "0",
+        "azimuth": -1.43,
+        "rain": [
+          107,
+          160,
+          68,
+          299,
+          268,
+          88,
+          192,
+          87
+        ]
+      },
+      {
+        "label": "90",
+        "azimuth": -94.5,
+        "rain": [
+          6,
+          61,
+          221,
+          811,
+          95,
+          92,
+          151,
+          45
+        ]
+      },
+      {
+        "label": "180",
+        "azimuth": 174.06,
+        "rain": [
+          43,
+          196,
+          109,
+          252,
+          337,
+          191,
+          127,
+          73
+        ]
+      }
+    ],
+    "camera": {
+      "start": {
+        "azimuth": -1.43,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": true
+      },
+      "quarter": {
+        "azimuth": -94.5,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": false
+      },
+      "half": {
+        "azimuth": 174.06,
+        "polar": 90,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": false
+      },
+      "top": {
+        "azimuth": 172.62,
+        "polar": 31.51,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": false
+      },
+      "bottom": {
+        "azimuth": 172.62,
+        "polar": 96.76,
+        "distance": 12.166,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": false
+      },
+      "near": {
+        "azimuth": 172.26,
+        "polar": 96.76,
+        "distance": 5.752,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": false
+      },
+      "far": {
+        "azimuth": 172.26,
+        "polar": 96.76,
+        "distance": 17.032,
+        "minDistance": 5.752,
+        "maxDistance": 17.032,
+        "minPolar": 31.51,
+        "maxPolar": 96.76,
+        "drifting": false
+      }
+    },
+    "errors": [],
+    "checks": [
+      [
+        "a quarter-height drag turns the camera about 90 deg",
+        true
+      ],
+      [
+        "a second drag reaches the far side, about 180 deg from the start",
+        true
+      ],
+      [
+        "rain fills the background from the front, side and back: no two neighbouring columns empty",
+        true
+      ],
+      [
+        "dragging down tilts up to the top limit, short of straight overhead",
+        true
+      ],
+      [
+        "dragging up tilts down to the bottom limit, above the floor",
+        true
+      ],
+      [
+        "zooming in stops at the limit outside every unit",
+        true
+      ],
+      [
+        "zooming out stops at the limit inside the rain",
+        true
+      ],
+      [
+        "left alone, the camera drifts",
+        true
+      ],
+      [
+        "pressing the pointer stops the drift at once",
         true
       ],
       [

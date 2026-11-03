@@ -22,6 +22,8 @@ export type TreeShape = { readonly rx: number; readonly ry: number; readonly tru
 const BIN = 0.05;
 /** Two stacking planes so units overlap at different depths instead of forming one flat wall. */
 const LAYER_Z = [0.35, -0.85] as const;
+/** Depth midway between the stacking planes: the axis the camera orbits and the cables gather around. */
+export const TREE_CENTER_Z = (LAYER_Z[0] + LAYER_Z[1]) / 2;
 
 function pack(shape: TreeShape, scale: number, rng: Rng, limit: number) {
   const rx = shape.rx * scale;

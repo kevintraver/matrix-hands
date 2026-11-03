@@ -41,6 +41,11 @@ function crt({ w, h, d, stand, screenW }: CrtParams): UnitSpec {
   const screenH = (screenW * 3) / 4;
   const screenY = bodyY + bodyH * 0.03;
   const bezelD = d * 0.2;
+  const bellD = (d - bezelD) * 0.72;
+  const neckD = d - bezelD - bellD;
+  const neckW = w * 0.94 * 0.62 * 0.82;
+  const neckH = bodyH * 0.94 * 0.66 * 0.85;
+  const neckY = bodyY - bodyH * 0.04;
   const portY = bodyY - bodyH * 0.12;
   return {
     size: [w, h, d],
@@ -58,7 +63,11 @@ function crt({ w, h, d, stand, screenW }: CrtParams): UnitSpec {
         b.box([w * 0.3, stand * 0.5, d * 0.3], [0, stand * 0.75, 0], p.trim);
       }
       b.box([w, bodyH, bezelD], [0, bodyY, d / 2 - bezelD / 2], p.shell);
-      b.taper([w * 0.94, bodyH * 0.94, d - bezelD], [0, bodyY, -bezelD / 2], [0.55, 0.6], p.shell);
+      b.taper([w * 0.94, bodyH * 0.94, bellD], [0, bodyY, d / 2 - bezelD - bellD / 2], [0.62, 0.66], p.shell);
+      b.box([neckW, neckH, neckD], [0, neckY, -d / 2 + neckD / 2], p.shell);
+      for (let i = 0; i < 5; i++) b.box([neckW * 0.8, 0.012, 0.022], [0, neckY + neckH / 2 + 0.004, -d / 2 + neckD * (0.18 + i * 0.15)], p.dark);
+      for (let i = 0; i < 4; i++) b.box([neckW * 0.66, 0.012, 0.01], [0, neckY + neckH * 0.16 + i * 0.026, -d / 2 - 0.004], p.dark);
+      b.box([0.05, 0.04, 0.014], [-neckW * 0.36, portY, -d / 2 - 0.005], p.dark);
       b.box([screenW * 1.1, screenH * 1.12, 0.03], [0, screenY, d / 2 + 0.01], p.dark);
       b.box([screenW * 1.02, screenH * 1.03, 0.03], [0, screenY, d / 2 + 0.018], GLASS);
       const ledX = w * 0.4;
@@ -82,6 +91,7 @@ const terminal: UnitSpec = {
   build(b, _rng, p) {
     b.box([0.78, 1.0, 0.62], [0, 0.5, 0.14], p.shell);
     b.taper([0.74, 0.92, 0.28], [0, 0.52, -0.31], [0.8, 0.85], p.trim);
+    for (let i = 0; i < 5; i++) b.box([0.4, 0.014, 0.012], [0, 0.66 + i * 0.035, -0.455], p.dark);
     b.box([0.6, 0.48, 0.03], [0, 0.66, 0.46], p.dark);
     b.box([0.52, 0.39, 0.03], [0, 0.66, 0.468], GLASS);
     b.box([0.26, 0.022, 0.02], [0.12, 0.3, 0.455], p.dark);
@@ -110,6 +120,9 @@ const desktop: UnitSpec = {
     for (let i = 0; i < 6; i++) b.box([0.012, 0.14, 0.012], [-0.58 + i * 0.03, 0.16, 0.546], p.dark);
     b.box([0.06, 0.06, 0.02], [0.52, 0.17, 0.548], p.trim);
     b.glow([0.025, 0.012, 0.012], [0.42, 0.12, 0.548], rng() < 0.5 ? LED_GREEN : LED_AMBER);
+    b.box([0.17, 0.22, 0.01], [0.56, 0.16, -0.545], p.trim);
+    for (let i = 0; i < 5; i++) b.box([0.012, 0.18, 0.014], [0.5 + i * 0.03, 0.16, -0.55], p.dark);
+    for (let i = 0; i < 4; i++) b.box([0.026, 0.2, 0.012], [-0.6 + i * 0.045, 0.16, -0.548], p.trim);
   },
 };
 
@@ -117,8 +130,8 @@ const tower: UnitSpec = {
   size: [0.5, 1.25, 1.05],
   weight: 0,
   ports: [
-    { face: 'back', at: [0, 1.0, -0.525] },
-    { face: 'back', at: [0, 0.7, -0.525] },
+    { face: 'back', at: [0.13, 0.95, -0.525] },
+    { face: 'back', at: [0.13, 0.7, -0.525] },
     { face: 'under', at: [0, 0, -0.3] },
   ],
   build(b, _rng, p) {
@@ -130,6 +143,9 @@ const tower: UnitSpec = {
     b.box([0.07, 0.07, 0.02], [0, 0.46, 0.522], p.dark);
     b.glow([0.02, 0.02, 0.012], [0.12, 0.46, 0.522], LED_GREEN);
     b.glow([0.02, 0.012, 0.012], [-0.12, 0.46, 0.522], LED_AMBER);
+    b.box([0.26, 0.24, 0.01], [-0.07, 1.04, -0.522], p.trim);
+    for (let i = 0; i < 5; i++) b.box([0.22, 0.012, 0.014], [-0.07, 0.96 + i * 0.04, -0.527], p.dark);
+    for (let i = 0; i < 6; i++) b.box([0.3, 0.024, 0.012], [-0.03, 0.22 + i * 0.045, -0.524], p.dark);
   },
 };
 
