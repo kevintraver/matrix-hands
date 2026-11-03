@@ -2,7 +2,7 @@
 // Drives the built app in Chromium with a fake webcam fed from real-hand video.
 // Usage: npm run build && npm run verify [-- scenario-name ...]
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -265,7 +265,11 @@ try {
 } finally {
   server.kill();
 }
-writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2) + '\n');
+// A subset run replaces only its own scenarios, so results.json always holds the latest result of each.
+const resultsPath = path.join(OUT, 'results.json');
+const previous = existsSync(resultsPath) ? JSON.parse(readFileSync(resultsPath, 'utf8')) : [];
+const merged = SCENARIOS.map((s) => results.find((r) => r.name === s.name) ?? previous.find((r) => r.name === s.name)).filter(Boolean);
+writeFileSync(resultsPath, JSON.stringify(merged, null, 2) + '\n');
 const failed = results.flatMap((r) => r.checks.filter(([, ok]) => !ok).map(([label]) => `${r.name}: ${label}`));
 if (failed.length) {
   console.error(`\nFAILED:\n  ${failed.join('\n  ')}`);

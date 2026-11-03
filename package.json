@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test": "node --experimental-strip-types --import ./tests/register.mjs --test tests/*.test.ts",
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {

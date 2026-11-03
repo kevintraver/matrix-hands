@@ -13,7 +13,7 @@
       "pulses": 0,
       "pulsesSpawned": 0
     },
-    "brightGreenShare": 0.00561,
+    "brightGreenShare": 0.00606,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -164,14 +164,14 @@
       "framesWithHands": 15,
       "fps": 1,
       "tier": "desktop",
-      "motion": 0.174,
-      "pulses": 4,
-      "pulsesSpawned": 10
+      "motion": 0.14,
+      "pulses": 2,
+      "pulsesSpawned": 8
     },
-    "brightGreenShare": 0.00537,
+    "brightGreenShare": 0.00485,
     "flow": {
-      "maxPulses": 4,
-      "maxMotion": 0.174,
+      "maxPulses": 2,
+      "maxMotion": 0.224,
       "spawned": 2,
       "endPulses": 2,
       "pulsesAtScreenshot": 1
@@ -213,15 +213,15 @@
       "state": "running",
       "delegate": "GPU",
       "hands": 2,
-      "detections": 14,
-      "framesWithHands": 14,
+      "detections": 15,
+      "framesWithHands": 15,
       "fps": 1,
       "tier": "desktop",
       "motion": 0,
       "pulses": 0,
       "pulsesSpawned": 0
     },
-    "brightGreenShare": 0.00471,
+    "brightGreenShare": 0.00467,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,

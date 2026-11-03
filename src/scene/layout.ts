@@ -12,8 +12,6 @@ export type Placement = {
 
 export type Layout = {
   readonly placements: readonly Placement[];
-  /** Points on the underside of the canopy where cables hang from. */
-  readonly cableAnchors: readonly Vec3[];
   readonly width: number;
   readonly height: number;
 };
@@ -43,7 +41,6 @@ function pack(shape: TreeShape, scale: number, rng: Rng, limit: number) {
   const skies = LAYER_Z.map(() => [...floor]);
 
   const placements: Placement[] = [];
-  const cableAnchors: Vec3[] = [];
   let fails = 0;
   while (placements.length < limit && fails < 40) {
     const kind = pickKind(rng);
@@ -82,21 +79,18 @@ function pack(shape: TreeShape, scale: number, rng: Rng, limit: number) {
       rotation: [jitter(rng, 0.05), jitter(rng, 0.24), jitter(rng, 0.05)],
       seed: Math.floor(rng() * 2 ** 31),
     });
-    let restsOnCanopyFloor = false;
-    for (let i = i0; i <= i1; i++) restsOnCanopyFloor ||= floor[i]! > 0.4 && base <= floor[i]! + 0.01;
-    if (restsOnCanopyFloor) cableAnchors.push([x, base + 0.05, z]);
   }
-  return { placements, cableAnchors };
+  return placements;
 }
 
 /** Seeded, so a given seed and count always produce the same tree. Scales the silhouette until `count` units fill it. */
 export function createLayout(count: number, shape: TreeShape, seed: number): Layout {
   let scale = 1;
   for (let i = 0; i < 4; i++) {
-    const capacity = pack(shape, scale, mulberry32(seed), Infinity).placements.length;
+    const capacity = pack(shape, scale, mulberry32(seed), Infinity).length;
     scale *= Math.min(1.5, Math.max(0.67, Math.sqrt(count / capacity)));
   }
-  const { placements, cableAnchors } = pack(shape, scale, mulberry32(seed), count);
+  const placements = pack(shape, scale, mulberry32(seed), count);
   let width = 0;
   let height = 0;
   for (const p of placements) {
@@ -104,5 +98,5 @@ export function createLayout(count: number, shape: TreeShape, seed: number): Lay
     width = Math.max(width, 2 * (Math.abs(p.position[0]) + w / 2));
     height = Math.max(height, p.position[1] + h);
   }
-  return { placements, cableAnchors, width, height };
+  return { placements, width, height };
 }

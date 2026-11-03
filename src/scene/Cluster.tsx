@@ -14,10 +14,12 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { screenModifier } from '../screen/modifiers';
 import { applyModification, createScreenMaterial } from '../screen/screenMaterial';
-import { UNITS } from './computers';
+import { PORT_FACES, UNITS } from './computers';
 import type { Layout } from './layout';
 import { createPartBuilder } from './partBuilder';
 import { mulberry32 } from './rng';
+
+const SOCKET = '#141414';
 
 type Screen = { matrix: Matrix4; geometry: PlaneGeometry; material: ShaderMaterial };
 
@@ -34,7 +36,10 @@ function buildCluster(layout: Layout, hand: Texture) {
       new Quaternion().setFromEuler(new Euler(...p.rotation)),
       new Vector3(1, 1, 1),
     );
-    b.group(unit, () => spec.build(b, mulberry32(p.seed)));
+    b.group(unit, () => {
+      spec.build(b, mulberry32(p.seed));
+      for (const port of spec.ports) b.box(PORT_FACES[port.face].socket, port.at, SOCKET);
+    });
     if (spec.screen) {
       const { w, h, offset } = spec.screen;
       screens.push({

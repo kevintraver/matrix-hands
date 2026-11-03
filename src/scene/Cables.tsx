@@ -2,21 +2,20 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   BufferAttribute,
-  CatmullRomCurve3,
   DataTexture,
   FloatType,
   NearestFilter,
   RGBAFormat,
   ShaderMaterial,
   TubeGeometry,
-  Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { reportDebug } from '../debug';
 import type { Flow } from './flow';
 import type { Layout } from './layout';
 import { PULSES, PULSE_TEXELS, countPulses, createPulseField, spawnPulses } from './pulses';
-import { mulberry32, range } from './rng';
+import { mulberry32 } from './rng';
+import { routeCables } from './cableRoutes';
 
 const vertexShader = /* glsl */ `
 attribute float aCable;
@@ -68,53 +67,26 @@ void main() {
 }
 `;
 
-/**
- * Cables gather under the crown, run down around the trunk as one tangled bundle, and spread
- * across the floor like roots. Every cable starts at the top, so uv.x runs from crown to floor.
- */
+const TUBE_SEGMENT = 0.06;
+
 function buildCables(layout: Layout, count: number) {
-  const rng = mulberry32(4242);
-  const near = [...layout.cableAnchors].sort((a, b) => Math.abs(a[0]) - Math.abs(b[0]));
-  const anchors = near.slice(0, Math.max(3, Math.ceil(near.length * 0.6)));
-  const crownBase = anchors.length > 0 ? Math.min(...anchors.map((a) => a[1])) : layout.height * 0.45;
-  const trunkHalf = Math.min(1.1, layout.width * 0.12);
-  const lengths: number[] = [];
-  const tubes = Array.from({ length: count }, (_, i) => {
-    const anchor = anchors[i % Math.max(1, anchors.length)];
-    const side = rng() < 0.5 ? -1 : 1;
-    const start = anchor
-      ? new Vector3(anchor[0] + range(rng, -0.4, 0.4), anchor[1], anchor[2] + range(rng, -0.3, 0.3))
-      : new Vector3(side * trunkHalf, crownBase, range(rng, -0.8, 0.2));
-    const hugX = () => side * trunkHalf * range(rng, 0.85, 1.35);
-    const hugZ = () => range(rng, -1.1, 0.45);
-    const angle = range(rng, -Math.PI * 0.95, Math.PI * 0.05) + (side > 0 ? 0 : -Math.PI * 0.1);
-    const reach = range(rng, 0.9, 3.8);
-    const land = new Vector3(Math.cos(angle) * reach * 1.25 + side * trunkHalf, 0.03, -Math.sin(angle) * reach * 0.8 + 0.3);
-    const curve = new CatmullRomCurve3([
-      start,
-      new Vector3((start.x + hugX()) / 2, start.y - 0.4, start.z + 0.05),
-      new Vector3(hugX(), crownBase * 0.62, hugZ()),
-      new Vector3(hugX(), crownBase * 0.28, hugZ()),
-      new Vector3(side * trunkHalf * range(rng, 1.1, 1.6), 0.08, range(rng, -0.6, 0.8)),
-      land,
-      new Vector3(land.x * range(rng, 1.15, 1.45), 0.03, land.z * range(rng, 1.1, 1.4) + 0.2),
-    ]);
-    const tube = new TubeGeometry(curve, 72, range(rng, 0.014, 0.03), 5, false);
+  const routes = routeCables(layout, count);
+  const tubes = routes.map(({ curve, radius }, i) => {
     const length = curve.getLength();
-    lengths.push(length);
+    const tube = new TubeGeometry(curve, Math.ceil(length / TUBE_SEGMENT), radius, 5, false);
     const vertices = tube.getAttribute('position').count;
     tube.setAttribute('aCable', new BufferAttribute(new Float32Array(vertices).fill(i), 1));
     tube.setAttribute('aLength', new BufferAttribute(new Float32Array(vertices).fill(length), 1));
-    return tube;
+    return { tube, length };
   });
-  return { geometry: mergeGeometries(tubes), lengths };
+  return { geometry: mergeGeometries(tubes.map((t) => t.tube)), lengths: tubes.map((t) => t.length) };
 }
 
 export function Cables({ layout, count, flow }: { layout: Layout; count: number; flow: Flow }) {
   const { geometry, material, field, texture } = useMemo(() => {
     const { geometry, lengths } = buildCables(layout, count);
     const field = createPulseField(lengths);
-    const texture = new DataTexture(field.data, PULSE_TEXELS, count, RGBAFormat, FloatType);
+    const texture = new DataTexture(field.data, PULSE_TEXELS, lengths.length, RGBAFormat, FloatType);
     texture.minFilter = texture.magFilter = NearestFilter;
     texture.needsUpdate = true;
     const material = new ShaderMaterial({

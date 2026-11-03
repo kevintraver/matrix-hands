@@ -7,12 +7,24 @@ export type UnitKind = 'crtLarge' | 'crtSmall' | 'terminal' | 'desktop' | 'tower
 /** Screen face centre in unit-local space (origin at the bottom centre, front facing +z). Always 4:3. */
 export type ScreenSpec = { readonly w: number; readonly h: number; readonly offset: Vec3 };
 
+export type PortFace = 'back' | 'under';
+
+/** A socket a cable can plug into, on the unit's back or underside, never its screen face. `at` lies on the size box. */
+export type Port = { readonly face: PortFace; readonly at: Vec3 };
+
+/** Per face: the unit-local direction a plugged cable leaves in, and the socket drawn there. */
+export const PORT_FACES: Record<PortFace, { readonly out: Vec3; readonly socket: Vec3 }> = {
+  back: { out: [0, 0, -1], socket: [0.08, 0.06, 0.03] },
+  under: { out: [0, -1, 0], socket: [0.08, 0.03, 0.06] },
+};
+
 export type UnitSpec = {
   /** Footprint used for stacking: width, height, depth. */
   readonly size: Vec3;
   /** Relative frequency in the layout. */
   readonly weight: number;
   readonly screen?: ScreenSpec;
+  readonly ports: readonly Port[];
   build(b: PartBuilder, rng: Rng): void;
 };
 
@@ -45,10 +57,17 @@ function crt({ w, h, d, stand, screenW }: CrtParams): UnitSpec {
   const screenH = (screenW * 3) / 4;
   const screenY = bodyY + bodyH * 0.03;
   const bezelD = d * 0.2;
+  const portY = bodyY - bodyH * 0.12;
   return {
     size: [w, h, d],
     weight: 0,
     screen: { w: screenW, h: screenH, offset: [0, screenY, d / 2 + 0.036] },
+    ports: [
+      { face: 'back', at: [-w * 0.1, portY, -d / 2] },
+      { face: 'back', at: [w * 0.1, portY, -d / 2] },
+      // Under the stand, or under the bezel when there is none: the only parts that reach y = 0.
+      { face: 'under', at: [0, 0, stand > 0 ? -d * 0.12 : d * 0.4] },
+    ],
     build(b, rng) {
       const p = pickPalette(rng);
       if (stand > 0) {
@@ -72,6 +91,11 @@ const terminal: UnitSpec = {
   size: [0.78, 1.02, 0.9],
   weight: 0,
   screen: { w: 0.5, h: 0.375, offset: [0, 0.66, 0.488] },
+  ports: [
+    { face: 'back', at: [-0.14, 0.42, -0.45] },
+    { face: 'back', at: [0.14, 0.42, -0.45] },
+    { face: 'under', at: [0.2, 0, 0.1] },
+  ],
   build(b, rng) {
     const p = pickPalette(rng);
     b.box([0.78, 1.0, 0.62], [0, 0.5, 0.14], p.shell);
@@ -88,6 +112,12 @@ const terminal: UnitSpec = {
 const desktop: UnitSpec = {
   size: [1.3, 0.32, 1.1],
   weight: 0,
+  ports: [
+    { face: 'back', at: [-0.38, 0.17, -0.55] },
+    { face: 'back', at: [0, 0.17, -0.55] },
+    { face: 'back', at: [0.38, 0.17, -0.55] },
+    { face: 'under', at: [0.4, 0, -0.2] },
+  ],
   build(b, rng) {
     const p = pickPalette(rng);
     b.box([1.3, 0.3, 1.08], [0, 0.16, 0], p.shell);
@@ -105,6 +135,11 @@ const desktop: UnitSpec = {
 const tower: UnitSpec = {
   size: [0.5, 1.25, 1.05],
   weight: 0,
+  ports: [
+    { face: 'back', at: [0, 1.0, -0.525] },
+    { face: 'back', at: [0, 0.7, -0.525] },
+    { face: 'under', at: [0, 0, -0.3] },
+  ],
   build(b, rng) {
     const p = pickPalette(rng);
     b.box([0.5, 1.22, 1.03], [0, 0.62, 0], p.shell);
@@ -124,6 +159,7 @@ const KEYBOARD_TILT = -1.15;
 const keyboard: UnitSpec = {
   size: [1.2, 0.46, 0.5],
   weight: 0,
+  ports: [],
   build(b, rng) {
     const p = pickPalette(rng);
     const lean = new Matrix4().makeTranslation(0, 0.02, 0.1).multiply(new Matrix4().makeRotationX(KEYBOARD_TILT));
