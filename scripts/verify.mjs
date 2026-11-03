@@ -451,7 +451,7 @@ function inspectVideo(file) {
     packets: pts.length,
     sizeBytes: Number(probe.format.size),
     greenShare: green / (raw.length / 3),
-    frame,
+    frame: path.relative(ROOT, frame),
   };
 }
 

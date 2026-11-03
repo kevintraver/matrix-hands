@@ -527,7 +527,7 @@
       "packets": 25,
       "sizeBytes": 645931,
       "greenShare": 0.035083333333333334,
-      "frame": "/home/user/matrix-hands/verification/recording-sample-frame.png"
+      "frame": "verification/recording-sample-frame.png"
     },
     "errors": [],
     "checks": [
