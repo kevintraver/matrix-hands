@@ -10,6 +10,11 @@ export type DebugStats = {
   framesWithHands: number;
   fps: number;
   tier: string;
+  motion: number;
+  /** In flight right now. */
+  pulses: number;
+  /** Started since load. */
+  pulsesSpawned: number;
 };
 
 declare global {
@@ -30,6 +35,9 @@ export function reportDebug(patch: Partial<DebugStats>): void {
       framesWithHands: 0,
       fps: 0,
       tier: '',
+      motion: 0,
+      pulses: 0,
+      pulsesSpawned: 0,
     }),
     ...patch,
   };
