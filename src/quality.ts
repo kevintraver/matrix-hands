@@ -1,3 +1,5 @@
+import type { TreeShape } from './scene/layout';
+
 export type Tier = 'desktop' | 'mobile';
 
 export type Quality = {
@@ -7,6 +9,7 @@ export type Quality = {
   readonly handTexSize: number;
   readonly bloom: { readonly intensity: number; readonly levels: number };
   readonly detectHz: number;
+  readonly tree: TreeShape;
 };
 
 export const QUALITY: Record<Tier, Quality> = {
@@ -17,6 +20,7 @@ export const QUALITY: Record<Tier, Quality> = {
     handTexSize: 512,
     bloom: { intensity: 1.1, levels: 7 },
     detectHz: 60,
+    tree: { rx: 5.2, ry: 2.9, trunkHalf: 0.75, trunkHeight: 3.4 },
   },
   mobile: {
     units: 20,
@@ -25,6 +29,7 @@ export const QUALITY: Record<Tier, Quality> = {
     handTexSize: 256,
     bloom: { intensity: 0.9, levels: 5 },
     detectHz: 30,
+    tree: { rx: 2.6, ry: 2.9, trunkHalf: 0.65, trunkHeight: 2.6 },
   },
 };
 

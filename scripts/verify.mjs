@@ -21,7 +21,7 @@ const BASE = `http://localhost:${PORT}/`;
 const FIXTURES = {
   hand: {
     image: 'right_hands.jpg',
-    filter: 'scale=640:-2,pad=720:540:(ow-iw)/2:(oh-ih)/2:white,crop=640:480:40+36*sin(t*1.3):30+24*sin(t*0.9)',
+    filter: 'scale=640:-2,pad=720:540:(ow-iw)/2:(oh-ih)/2:white,crop=640:480:40+5*sin(t*1.3):30+4*sin(t*0.9)',
   },
   nohand: { image: 'wall.jpg', filter: 'crop=170:128:0:0,scale=640:480' },
 };
@@ -48,8 +48,11 @@ function buildFixture(name) {
 
 async function startServer() {
   if (!existsSync(path.join(ROOT, 'dist', 'index.html'))) throw new Error('dist/ missing: run `npm run build` first');
-  const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: 'ignore' });
+  const vite = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
+  const server = spawn(process.execPath, [vite, 'preview', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: 'ignore' });
+  server.on('exit', (code) => code && console.error(`preview server exited with ${code} (port ${PORT} busy?)`));
   for (let i = 0; i < 100; i++) {
+    if (server.exitCode !== null) throw new Error(`preview server exited; is port ${PORT} already in use?`);
     try {
       if ((await fetch(BASE)).ok) return server;
     } catch {}

@@ -1,25 +1,32 @@
 import { useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
 import { Stats } from '@react-three/drei';
 import { DEBUG } from '../debug';
 import type { Quality } from '../quality';
 import type { HandTexture } from '../screen/handTexture';
-import { screenModifier } from '../screen/modifiers';
-import { applyModification, createScreenMaterial } from '../screen/screenMaterial';
 import type { HandTracker } from '../tracking/handTracker';
+import { CameraRig } from './CameraRig';
+import { Cluster } from './Cluster';
 import { FpsMeter } from './FpsMeter';
 import { HandTextureDriver } from './HandTextureDriver';
+import { createLayout } from './layout';
 
-type Props = { tracker: HandTracker; hand: HandTexture; quality: Quality };
+type Props = { tracker: HandTracker; hand: HandTexture; quality: Quality; seed: number };
 
-export function Scene({ tracker, hand }: Props) {
-  const material = useMemo(() => createScreenMaterial(hand.texture, 0), [hand]);
-  useFrame(({ clock }) => applyModification(material, screenModifier(0, clock.elapsedTime), clock.elapsedTime));
+export function Scene({ tracker, hand, quality, seed }: Props) {
+  const layout = useMemo(() => createLayout(quality.units, quality.tree, seed), [quality, seed]);
   return (
     <>
+      <fog attach="fog" args={['#000', 18, 45]} />
       <HandTextureDriver tracker={tracker} hand={hand} />
-      <mesh position={[0, 0, 0]} material={material}>
-        <planeGeometry args={[8, 6]} />
+      <CameraRig layout={layout} />
+      <hemisphereLight args={['#9fb8a4', '#020402', 0.35]} />
+      <directionalLight position={[-5, 9, 8]} intensity={1.1} color="#fff1dc" />
+      <directionalLight position={[2, 6, -8]} intensity={1.6} color="#3dff7a" />
+      <pointLight position={[0, layout.height * 0.6, 3]} intensity={6} distance={14} color="#4dff88" />
+      <Cluster layout={layout} hand={hand.texture} />
+      <mesh rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#020302" roughness={1} />
       </mesh>
       {DEBUG && <FpsMeter />}
       {DEBUG && <Stats className="stats-panel" />}

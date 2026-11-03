@@ -50,7 +50,7 @@ export function drawHandOutline(ctx: Canvas2D, scratch: Canvas2D, frame: HandFra
   const hands = frame.hands.map((hand) => {
     const pts = toCanvas(hand.points, frame.aspect, w, h);
     const palmLength = Math.hypot(pts[9]!.x - pts[0]!.x, pts[9]!.y - pts[0]!.y);
-    return { pts, palmLength, edge: Math.max(1.5, palmLength * 0.035) };
+    return { pts, palmLength, edge: Math.max(2, palmLength * 0.05) };
   });
 
   scratch.clearRect(0, 0, w, h);
