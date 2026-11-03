@@ -1,5 +1,6 @@
 import { Matrix4 } from 'three';
 import { range, type Rng } from './rng';
+import type { Finish } from './finishes';
 import type { PartBuilder, Vec3 } from './partBuilder';
 
 export type UnitKind = 'crtLarge' | 'crtSmall' | 'terminal' | 'desktop' | 'tower' | 'keyboard';
@@ -25,24 +26,7 @@ export type UnitSpec = {
   readonly weight: number;
   readonly screen?: ScreenSpec;
   readonly ports: readonly Port[];
-  build(b: PartBuilder, rng: Rng): void;
-};
-
-type Palette = { shell: string; trim: string; dark: string };
-
-const BEIGE: readonly Palette[] = [
-  { shell: '#cdc3a6', trim: '#b8ad8f', dark: '#3a372f' },
-  { shell: '#d6ceb5', trim: '#c2b99c', dark: '#34312b' },
-  { shell: '#c4b48a', trim: '#ad9e76', dark: '#38342a' },
-];
-const BLACK: readonly Palette[] = [
-  { shell: '#232325', trim: '#2e2e31', dark: '#0c0c0d' },
-  { shell: '#3a3b3d', trim: '#2a2b2d', dark: '#101011' },
-];
-
-const pickPalette = (rng: Rng): Palette => {
-  const pool = rng() < 0.62 ? BEIGE : BLACK;
-  return pool[Math.floor(rng() * pool.length)]!;
+  build(b: PartBuilder, rng: Rng, p: Finish): void;
 };
 
 const LED_GREEN = [0.5, 3.2, 0.9] as const;
@@ -68,8 +52,7 @@ function crt({ w, h, d, stand, screenW }: CrtParams): UnitSpec {
       // Under the stand, or under the bezel when there is none: the only parts that reach y = 0.
       { face: 'under', at: [0, 0, stand > 0 ? -d * 0.12 : d * 0.4] },
     ],
-    build(b, rng) {
-      const p = pickPalette(rng);
+    build(b, rng, p) {
       if (stand > 0) {
         b.box([w * 0.5, stand * 0.55, d * 0.5], [0, stand * 0.275, 0], p.trim);
         b.box([w * 0.3, stand * 0.5, d * 0.3], [0, stand * 0.75, 0], p.trim);
@@ -96,8 +79,7 @@ const terminal: UnitSpec = {
     { face: 'back', at: [0.14, 0.42, -0.45] },
     { face: 'under', at: [0.2, 0, 0.1] },
   ],
-  build(b, rng) {
-    const p = pickPalette(rng);
+  build(b, _rng, p) {
     b.box([0.78, 1.0, 0.62], [0, 0.5, 0.14], p.shell);
     b.taper([0.74, 0.92, 0.28], [0, 0.52, -0.31], [0.8, 0.85], p.trim);
     b.box([0.6, 0.48, 0.03], [0, 0.66, 0.46], p.dark);
@@ -118,8 +100,7 @@ const desktop: UnitSpec = {
     { face: 'back', at: [0.38, 0.17, -0.55] },
     { face: 'under', at: [0.4, 0, -0.2] },
   ],
-  build(b, rng) {
-    const p = pickPalette(rng);
+  build(b, rng, p) {
     b.box([1.3, 0.3, 1.08], [0, 0.16, 0], p.shell);
     b.box([1.32, 0.03, 1.1], [0, 0.015, 0], p.trim);
     for (const x of [-0.3, 0.1]) {
@@ -140,8 +121,7 @@ const tower: UnitSpec = {
     { face: 'back', at: [0, 0.7, -0.525] },
     { face: 'under', at: [0, 0, -0.3] },
   ],
-  build(b, rng) {
-    const p = pickPalette(rng);
+  build(b, _rng, p) {
     b.box([0.5, 1.22, 1.03], [0, 0.62, 0], p.shell);
     b.box([0.54, 0.04, 1.05], [0, 0.02, 0], p.trim);
     for (let i = 0; i < 3; i++) b.box([0.4, 0.13, 0.02], [0, 1.08 - i * 0.16, 0.522], p.trim);
@@ -160,8 +140,7 @@ const keyboard: UnitSpec = {
   size: [1.2, 0.46, 0.5],
   weight: 0,
   ports: [],
-  build(b, rng) {
-    const p = pickPalette(rng);
+  build(b, rng, p) {
     const lean = new Matrix4().makeTranslation(0, 0.02, 0.1).multiply(new Matrix4().makeRotationX(KEYBOARD_TILT));
     b.group(lean, () => {
       b.box([1.2, 0.05, 0.45], [0, 0.025, -0.225], p.shell);

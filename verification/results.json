@@ -1,6 +1,7 @@
 [
   {
     "name": "desktop-hand",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=7 framesWithHands=7 fps(headless, software GL)=0 brightGreenShare=0.00601 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
@@ -9,11 +10,12 @@
       "framesWithHands": 7,
       "fps": 0,
       "tier": "desktop",
+      "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
       "pulsesSpawned": 0
     },
-    "brightGreenShare": 0.00606,
+    "brightGreenShare": 0.00601,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -50,6 +52,7 @@
   },
   {
     "name": "desktop-nohand",
+    "summary": "delegate=GPU tier=desktop hands=0 detections=15 framesWithHands=0 fps(headless, software GL)=0 brightGreenShare=0.00035 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
@@ -58,11 +61,12 @@
       "framesWithHands": 0,
       "fps": 0,
       "tier": "desktop",
+      "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
       "pulsesSpawned": 0
     },
-    "brightGreenShare": 0.00009,
+    "brightGreenShare": 0.00035,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -209,6 +213,7 @@
   },
   {
     "name": "flow-still",
+    "summary": "delegate=GPU tier=desktop hands=2 detections=15 framesWithHands=15 fps(headless, software GL)=1 brightGreenShare=0.00506 maxMotion=0 pulsesStarted=0 maxPulsesInFlight=0 pulsesAtScreenshot=0",
     "stats": {
       "state": "running",
       "delegate": "GPU",
@@ -217,11 +222,12 @@
       "framesWithHands": 15,
       "fps": 1,
       "tier": "desktop",
+      "colorSeed": 1540484694,
       "motion": 0,
       "pulses": 0,
       "pulsesSpawned": 0
     },
-    "brightGreenShare": 0.00467,
+    "brightGreenShare": 0.00506,
     "flow": {
       "maxPulses": 0,
       "maxMotion": 0,
@@ -260,6 +266,35 @@
       ],
       [
         "page cannot reach the telemetry endpoint",
+        true
+      ]
+    ]
+  },
+  {
+    "name": "colors-reload",
+    "summary": "colour seeds without ?seed=: 855183754, 2104830290; with ?seed=1987: 1540484694, 1540484694",
+    "colorSeeds": {
+      "unseeded": [
+        855183754,
+        2104830290
+      ],
+      "seeded": [
+        1540484694,
+        1540484694
+      ]
+    },
+    "errors": [],
+    "checks": [
+      [
+        "two loads without ?seed= paint different colours",
+        true
+      ],
+      [
+        "two loads with ?seed= paint the same colours",
+        true
+      ],
+      [
+        "no page errors",
         true
       ]
     ]

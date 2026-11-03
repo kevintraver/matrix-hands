@@ -10,6 +10,8 @@ export type DebugStats = {
   framesWithHands: number;
   fps: number;
   tier: string;
+  /** Seeds the unit colours; differs per load unless ?seed= is set. */
+  colorSeed: number;
   motion: number;
   /** In flight right now. */
   pulses: number;
@@ -35,6 +37,7 @@ export function reportDebug(patch: Partial<DebugStats>): void {
       framesWithHands: 0,
       fps: 0,
       tier: '',
+      colorSeed: 0,
       motion: 0,
       pulses: 0,
       pulsesSpawned: 0,

@@ -13,13 +13,23 @@ import type { Flow } from './flow';
 import { HandFrameReader } from './HandFrameReader';
 import { Effects } from './Effects';
 import { Floor } from './Floor';
+import { assignFinishes } from './finishes';
 import { createLayout } from './layout';
 import { MatrixRain } from './MatrixRain';
+import { mulberry32 } from './rng';
 
-type Props = { tracker: HandTracker; hand: HandTexture; quality: Quality; seed: number };
+type Props = {
+  tracker: HandTracker;
+  hand: HandTexture;
+  quality: Quality;
+  seed: number;
+  /** Separate from `seed`, so the colours can change without moving any unit. */
+  colorSeed: number;
+};
 
-export function Scene({ tracker, hand, quality, seed }: Props) {
+export function Scene({ tracker, hand, quality, seed, colorSeed }: Props) {
   const layout = useMemo(() => createLayout(quality.units, quality.tree, seed), [quality, seed]);
+  const finishes = useMemo(() => assignFinishes(layout, mulberry32(colorSeed)), [layout, colorSeed]);
   const flow = useMemo<Flow>(() => ({ motion: 0 }), []);
   const setDpr = useThree((s) => s.setDpr);
   const [minDpr, maxDpr] = quality.dpr;
@@ -39,7 +49,7 @@ export function Scene({ tracker, hand, quality, seed }: Props) {
       <directionalLight position={[-5, 9, 8]} intensity={1.1} color="#fff1dc" />
       <directionalLight position={[2, 6, -8]} intensity={1.6} color="#3dff7a" />
       <pointLight position={[0, layout.height * 0.6, 3]} intensity={6} distance={14} color="#4dff88" />
-      <Cluster layout={layout} hand={hand.texture} />
+      <Cluster layout={layout} finishes={finishes} hand={hand.texture} />
       <Cables layout={layout} count={quality.cables} flow={flow} />
       <MatrixRain width={70} height={44} z={-14} />
       <Floor radius={Math.max(layout.width, layout.height) * 2.5} />

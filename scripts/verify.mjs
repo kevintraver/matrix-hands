@@ -35,13 +35,15 @@ const IPHONE = { ...devices['iPhone 14'], deviceScaleFactor: 2 };
 // 0.5 fps, too slow to measure hand motion. The flow check therefore runs on a small 1x page.
 const FLOW = { viewport: { width: 960, height: 600 }, deviceScaleFactor: 1 };
 
-// flow: 'moving' requires cable pulses, 'still' and 'none' require dark cables, 'report' only logs.
+// camera: flow 'moving' requires cable pulses, 'still' and 'none' require dark cables, 'report' only logs.
+// colors: reloads the page with and without ?seed= and compares the colour seeds it reports.
 const SCENARIOS = [
-  { name: 'desktop-hand', fixture: 'hand', context: DESKTOP, expectHands: true, flow: 'report' },
-  { name: 'desktop-nohand', fixture: 'nohand', context: DESKTOP, expectHands: false, flow: 'none' },
-  { name: 'iphone14-hand', fixture: 'hand', context: IPHONE, expectHands: true, flow: 'report' },
-  { name: 'flow-moving', fixture: 'hand', context: FLOW, expectHands: true, flow: 'moving' },
-  { name: 'flow-still', fixture: 'still', context: FLOW, expectHands: true, flow: 'still' },
+  { name: 'desktop-hand', kind: 'camera', fixture: 'hand', context: DESKTOP, expectHands: true, flow: 'report' },
+  { name: 'desktop-nohand', kind: 'camera', fixture: 'nohand', context: DESKTOP, expectHands: false, flow: 'none' },
+  { name: 'iphone14-hand', kind: 'camera', fixture: 'hand', context: IPHONE, expectHands: true, flow: 'report' },
+  { name: 'flow-moving', kind: 'camera', fixture: 'hand', context: FLOW, expectHands: true, flow: 'moving' },
+  { name: 'flow-still', kind: 'camera', fixture: 'still', context: FLOW, expectHands: true, flow: 'still' },
+  { name: 'colors-reload', kind: 'colors', fixture: 'nohand', context: FLOW },
 ];
 
 /** Headless renders at about 1 fps, so in-flight counts are tiny; `spawned` counts pulses started in the window. */
@@ -146,7 +148,8 @@ const hotSpots = (page, png) =>
     return spots;
   }, `data:image/png;base64,${png.toString('base64')}`);
 
-async function run(scenario) {
+/** Chromium with the scenario's fixture as its webcam, recording page errors and any traffic to another origin. */
+async function openSession(scenario) {
   const video = buildFixture(scenario.fixture);
   const browser = await chromium.launch({
     args: [
@@ -176,8 +179,15 @@ async function run(scenario) {
     else errors.push(m.text());
   });
   page.on('response', (r) => isForeign(r.url()) && foreign.add(r.url()));
+  return { browser, page, errors, blockedByPolicy, foreign };
+}
 
-  await page.goto(`${BASE}?debug`);
+const hideOverlay = (page) => page.addStyleTag({ content: '.overlay, .stats-panel { display: none !important; }' });
+
+async function runCamera(scenario) {
+  const { browser, page, errors, blockedByPolicy, foreign } = await openSession(scenario);
+  // A fixed seed also fixes the colours, so screenshots are comparable across runs.
+  await page.goto(`${BASE}?debug&seed=1987`);
   await page.getByRole('button', { name: 'ENTER' }).click();
   await page.waitForFunction(() => window.__matrixHands?.state === 'running', null, { timeout: 90_000 });
   if (scenario.expectHands) {
@@ -231,8 +241,13 @@ async function run(scenario) {
     ['no response from another origin', foreign.size === 0],
     ['page cannot reach the telemetry endpoint', telemetryProbe === 'refused'],
   ];
+  const summary =
+    `delegate=${s.delegate} tier=${s.tier} hands=${s.hands} detections=${s.detections} framesWithHands=${s.framesWithHands} ` +
+    `fps(headless, software GL)=${s.fps} brightGreenShare=${green.toFixed(5)} maxMotion=${flow.maxMotion} ` +
+    `pulsesStarted=${flow.spawned} maxPulsesInFlight=${flow.maxPulses} pulsesAtScreenshot=${pulsesAtScreenshot}`;
   return {
     name: scenario.name,
+    summary,
     stats: s,
     brightGreenShare: Number(green.toFixed(5)),
     flow: { ...flow, pulsesAtScreenshot },
@@ -244,22 +259,46 @@ async function run(scenario) {
   };
 }
 
+async function runColors(scenario) {
+  const { browser, page, errors } = await openSession(scenario);
+  const load = async (query, shot) => {
+    await page.goto(`${BASE}${query}`);
+    await hideOverlay(page);
+    await page.waitForFunction(() => (window.__matrixHands?.fps ?? 0) > 0, null, { timeout: 60_000 });
+    await page.waitForTimeout(1500);
+    if (shot) await page.screenshot({ path: path.join(OUT, shot) });
+    return (await stats(page)).colorSeed;
+  };
+  const unseeded = [await load('?debug', 'colors-reload-a.png'), await load('?debug', 'colors-reload-b.png')];
+  const seeded = [await load('?debug&seed=1987'), await load('?debug&seed=1987')];
+  await browser.close();
+  return {
+    name: scenario.name,
+    summary: `colour seeds without ?seed=: ${unseeded.join(', ')}; with ?seed=1987: ${seeded.join(', ')}`,
+    colorSeeds: { unseeded, seeded },
+    errors,
+    checks: [
+      ['two loads without ?seed= paint different colours', unseeded[0] !== unseeded[1]],
+      ['two loads with ?seed= paint the same colours', seeded[0] === seeded[1]],
+      ['no page errors', errors.length === 0],
+    ],
+  };
+}
+
+const RUNNERS = { camera: runCamera, colors: runColors };
+
 const only = process.argv.slice(2);
 const server = await startServer();
 const results = [];
 try {
   for (const scenario of SCENARIOS.filter((s) => only.length === 0 || only.includes(s.name))) {
-    const r = await run(scenario);
+    const r = await RUNNERS[scenario.kind](scenario);
     results.push(r);
-    console.log(`\n${r.name}  delegate=${r.stats.delegate} tier=${r.stats.tier} hands=${r.stats.hands} ` +
-      `detections=${r.stats.detections} framesWithHands=${r.stats.framesWithHands} ` +
-      `fps(headless, software GL)=${r.stats.fps} brightGreenShare=${r.brightGreenShare} ` +
-      `maxMotion=${r.flow.maxMotion} pulsesStarted=${r.flow.spawned} maxPulsesInFlight=${r.flow.maxPulses} ` +
-      `pulsesAtScreenshot=${r.flow.pulsesAtScreenshot}`);
+    console.log(`\n${r.name}  ${r.summary}`);
     for (const [label, ok] of r.checks) console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}`);
-    if (r.errors.length) console.log('  errors:', r.errors.slice(0, 5));
-    if (r.foreign.length) console.log('  responses from other origins:', r.foreign);
-    if (r.hotSpots.length) console.log('  white-hot spots (x%, y%, px):', JSON.stringify(r.hotSpots.slice(0, 8)));
+    if (r.errors?.length) console.log('  errors:', r.errors.slice(0, 5));
+    if (r.foreign?.length) console.log('  responses from other origins:', r.foreign);
+    if (r.hotSpots?.length) console.log('  white-hot spots (x%, y%, px):', JSON.stringify(r.hotSpots.slice(0, 8)));
     if (r.blockedByPolicy) console.log(`  telemetry attempts refused by CSP: ${r.blockedByPolicy}`);
   }
 } finally {

@@ -15,6 +15,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { screenModifier } from '../screen/modifiers';
 import { applyModification, createScreenMaterial } from '../screen/screenMaterial';
 import { PORT_FACES, UNITS } from './computers';
+import type { Finish } from './finishes';
 import type { Layout } from './layout';
 import { createPartBuilder } from './partBuilder';
 import { mulberry32 } from './rng';
@@ -26,10 +27,10 @@ type Screen = { matrix: Matrix4; geometry: PlaneGeometry; material: ShaderMateri
 const bodyMaterial = new MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.05 });
 const glowMaterial = new MeshBasicMaterial({ vertexColors: true, toneMapped: false });
 
-function buildCluster(layout: Layout, hand: Texture) {
+function buildCluster(layout: Layout, finishes: readonly Finish[], hand: Texture) {
   const b = createPartBuilder();
   const screens: Screen[] = [];
-  for (const p of layout.placements) {
+  layout.placements.forEach((p, i) => {
     const spec = UNITS[p.kind];
     const unit = new Matrix4().compose(
       new Vector3(...p.position),
@@ -37,7 +38,7 @@ function buildCluster(layout: Layout, hand: Texture) {
       new Vector3(1, 1, 1),
     );
     b.group(unit, () => {
-      spec.build(b, mulberry32(p.seed));
+      spec.build(b, mulberry32(p.seed), finishes[i]!);
       for (const port of spec.ports) b.box(PORT_FACES[port.face].socket, port.at, SOCKET);
     });
     if (spec.screen) {
@@ -48,12 +49,12 @@ function buildCluster(layout: Layout, hand: Texture) {
         material: createScreenMaterial(hand, (p.seed % 1000) / 1000),
       });
     }
-  }
+  });
   return { body: mergeGeometries(b.solid), glow: mergeGeometries(b.glowing), screens };
 }
 
-export function Cluster({ layout, hand }: { layout: Layout; hand: Texture }) {
-  const { body, glow, screens } = useMemo(() => buildCluster(layout, hand), [layout, hand]);
+export function Cluster({ layout, finishes, hand }: { layout: Layout; finishes: readonly Finish[]; hand: Texture }) {
+  const { body, glow, screens } = useMemo(() => buildCluster(layout, finishes, hand), [layout, finishes, hand]);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     screens.forEach((s, i) => applyModification(s.material, screenModifier(i, t), t));
