@@ -50,7 +50,6 @@ async function startServer() {
   if (!existsSync(path.join(ROOT, 'dist', 'index.html'))) throw new Error('dist/ missing: run `npm run build` first');
   const vite = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
   const server = spawn(process.execPath, [vite, 'preview', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: 'ignore' });
-  server.on('exit', (code) => code && console.error(`preview server exited with ${code} (port ${PORT} busy?)`));
   for (let i = 0; i < 100; i++) {
     if (server.exitCode !== null) throw new Error(`preview server exited; is port ${PORT} already in use?`);
     try {

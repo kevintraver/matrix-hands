@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { DEBUG, reportDebug } from './debug';
+import { enableTilt } from './input/parallax';
 import { QUALITY, pickTier } from './quality';
 import { createHandTracker } from './tracking/handTracker';
 import { Scene } from './scene/Scene';
@@ -23,6 +24,7 @@ export function App() {
   useEffect(() => tracker.preload(), []);
   const enter = () => {
     setEntered(true);
+    if (QUALITY_NOW.tilt) enableTilt();
     tracker.start();
   };
   return (
