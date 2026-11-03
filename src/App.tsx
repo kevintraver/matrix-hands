@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { DEBUG, reportDebug } from './debug';
 import { QUALITY, pickTier } from './quality';
@@ -29,16 +29,26 @@ export function App() {
   const state = useTrackerState(tracker);
   const [entered, setEntered] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
-  useEffect(() => tracker.preload(), []);
+  // Nothing draws until the scene's shaders have compiled, so the first frame never stalls the page.
+  const [compiled, setCompiled] = useState(false);
+  const onCompiled = useCallback(() => setCompiled(true), []);
+  const trackerLoading = useSyncExternalStore(tracker.subscribe, tracker.isLoading);
+  // MediaPipe compiles its shaders in the worker once the scene has drawn. While it does, every frame the
+  // page draws waits on the busy GPU, so the scene holds its last frame instead of stuttering.
+  useEffect(() => {
+    if (!compiled) return;
+    const frame = requestAnimationFrame(() => requestAnimationFrame(() => tracker.preload()));
+    return () => cancelAnimationFrame(frame);
+  }, [compiled]);
   const enter = () => {
     setEntered(true);
     tracker.start();
   };
   return (
     <>
-      <Canvas ref={canvas} dpr={[...QUALITY_NOW.dpr]} camera={{ fov: 40, position: [0, 5, 14] }} gl={{ antialias: true }}>
+      <Canvas ref={canvas} frameloop={compiled && !trackerLoading ? 'always' : 'never'} dpr={[...QUALITY_NOW.dpr]} camera={{ fov: 40, position: [0, 5, 14] }} gl={{ antialias: true }}>
         <color attach="background" args={['#000']} />
-        <Scene tracker={tracker} hand={hand} quality={QUALITY_NOW} seed={SEED} colorSeed={COLOR_SEED} />
+        <Scene tracker={tracker} hand={hand} quality={QUALITY_NOW} seed={SEED} colorSeed={COLOR_SEED} onCompiled={onCompiled} />
       </Canvas>
       {DEBUG && entered && <DebugVideo tracker={tracker} handCanvas={hand.texture.image as HTMLCanvasElement} />}
       {recorder && state.kind === 'running' && <RecordControls recorder={recorder} canvas={canvas} />}

@@ -82,6 +82,44 @@ function obstacles(layout: Layout): Obstacle[] {
   return [...units, ...faces];
 }
 
+/**
+ * The largest clearance this file tests: a plug's run out of its socket and `escape` both keep
+ * `margin` plus the cable's radius, and `isClear` asks for less. An obstacle farther away can
+ * never fail a check, so leaving it out changes no route.
+ */
+const NEAR = ROUTING.margin + ROUTING.radius[1];
+const CELL = 0.5;
+const NONE: readonly Obstacle[] = [];
+
+/**
+ * The obstacles that could be within `NEAR` of a point, in their original order. Routing asks this
+ * hundreds of thousands of times, and most points sit near none or one of the boxes.
+ */
+type Obstacles = { readonly all: readonly Obstacle[]; near(point: Vector3): readonly Obstacle[] };
+
+const cellKey = (x: number, y: number, z: number) => ((x + 512) * 1024 + (y + 512)) * 1024 + (z + 512);
+
+function index(all: readonly Obstacle[]): Obstacles {
+  const cells = new Map<number, Obstacle[]>();
+  for (const o of all) {
+    const r = o.reach + NEAR;
+    const lo = [o.center.x - r, o.center.y - r, o.center.z - r].map((v) => Math.floor(v / CELL));
+    const hi = [o.center.x + r, o.center.y + r, o.center.z + r].map((v) => Math.floor(v / CELL));
+    for (let x = lo[0]!; x <= hi[0]!; x++)
+      for (let y = lo[1]!; y <= hi[1]!; y++)
+        for (let z = lo[2]!; z <= hi[2]!; z++) {
+          const key = cellKey(x, y, z);
+          const cell = cells.get(key);
+          if (cell) cell.push(o);
+          else cells.set(key, [o]);
+        }
+  }
+  return {
+    all,
+    near: (p) => cells.get(cellKey(Math.floor(p.x / CELL), Math.floor(p.y / CELL), Math.floor(p.z / CELL))) ?? NONE,
+  };
+}
+
 const local = new Vector3();
 
 /** Exact near the box; outside its bounding sphere a lower bound, which is all the threshold checks need. */
@@ -101,10 +139,10 @@ const best = new Vector3();
 const hits: Obstacle[] = [];
 
 /** Moves `point` to the nearest spot at least `margin` from every obstacle, never below `floor`. */
-function escape(point: Vector3, all: readonly Obstacle[], margin: number, floor: number): void {
+function escape(point: Vector3, obstacles: Obstacles, margin: number, floor: number): void {
   for (let pass = 0; pass < 4; pass++) {
     hits.length = 0;
-    for (const o of all) if (distance(o, point) < margin) hits.push(o);
+    for (const o of obstacles.near(point)) if (distance(o, point) < margin) hits.push(o);
     if (hits.length === 0) return;
     let bestScore = Infinity;
     for (const o of hits) {
@@ -120,7 +158,7 @@ function escape(point: Vector3, all: readonly Obstacle[], margin: number, floor:
       for (const [axis, value] of faces) {
         candidate.copy(origin).setComponent('xyz'.indexOf(axis), value).applyMatrix4(o.toWorld);
         if (candidate.y < floor) continue;
-        const blocked = all.some((other) => other !== o && distance(other, candidate) < margin);
+        const blocked = obstacles.near(candidate).some((other) => other !== o && distance(other, candidate) < margin);
         const score = candidate.distanceTo(point) + (blocked ? 1000 : 0);
         if (score < bestScore) {
           bestScore = score;
@@ -134,18 +172,18 @@ function escape(point: Vector3, all: readonly Obstacle[], margin: number, floor:
 }
 
 /** A port is open when its straight run out of the socket clears every other computer and the floor. */
-function openPlugs(layout: Layout, all: readonly Obstacle[]): Plug[] {
+function openPlugs(layout: Layout, obstacles: Obstacles): Plug[] {
   const clearance = ROUTING.margin + ROUTING.radius[1];
   return layout.placements.flatMap((p, unit) =>
     UNITS[p.kind].ports.flatMap((port) => {
-      const o = all[unit]!;
+      const o = obstacles.all[unit]!;
       const at = new Vector3(...port.at).applyMatrix4(o.toWorld);
       const out = new Vector3(...PORT_FACES[port.face].out).transformDirection(o.toWorld);
       const reach = ROUTING.stub + 0.3;
       for (let s = 0.05; s <= reach; s += 0.05) {
         const point = at.clone().addScaledVector(out, s);
         if (point.y < 0.15) return [];
-        if (all.some((other) => other.unit !== unit && distance(other, point) < clearance)) return [];
+        if (obstacles.near(point).some((other) => other.unit !== unit && distance(other, point) < clearance)) return [];
       }
       return [{ unit, at, out }];
     }),
@@ -184,7 +222,7 @@ function waypoints(plug: Plug, layout: Layout, rng: Rng): Vector3[] {
  * Pulls the rough path taut a little at a time while pushing it out of every computer, so it wraps
  * around units instead of through them. The socket run stays straight and the root tip stays put.
  */
-function relax(rough: Vector3[], all: readonly Obstacle[], radius: number): Vector3[] {
+function relax(rough: Vector3[], obstacles: Obstacles, radius: number): Vector3[] {
   const guide = new CatmullRomCurve3(rough, false, 'centripetal');
   const points = guide.getSpacedPoints(Math.ceil(guide.getLength() / ROUTING.spacing));
   const fixed = Math.ceil(ROUTING.stub / ROUTING.spacing);
@@ -196,19 +234,19 @@ function relax(rough: Vector3[], all: readonly Obstacle[], radius: number): Vect
         mid.addVectors(points[i - 1]!, points[i + 1]!).multiplyScalar(0.5);
         points[i]!.lerp(mid, ROUTING.smoothing);
       }
-      escape(points[i]!, all, margin, radius);
+      escape(points[i]!, obstacles, margin, radius);
     }
   }
   return points;
 }
 
 /** Every sample of the curve keeps `minClearance`, except right at the plug where it leaves its own unit. */
-function isClear(curve: CatmullRomCurve3, all: readonly Obstacle[], radius: number, unit: number): boolean {
+function isClear(curve: CatmullRomCurve3, obstacles: Obstacles, radius: number, unit: number): boolean {
   const length = curve.getLength();
   const samples = curve.getSpacedPoints(Math.ceil(length / 0.01));
   const ownSlack = 0.1;
   return samples.every((point, i) =>
-    all.every((o) => (o.unit === unit && (i / samples.length) * length <= ownSlack) || distance(o, point) >= radius + ROUTING.minClearance),
+    obstacles.near(point).every((o) => (o.unit === unit && (i / samples.length) * length <= ownSlack) || distance(o, point) >= radius + ROUTING.minClearance),
   );
 }
 
@@ -216,24 +254,33 @@ function isClear(curve: CatmullRomCurve3, all: readonly Obstacle[], radius: numb
  * A smooth curve through clear points can still cut a box corner between them, so resample it finely,
  * push the samples out again, and repeat until the curve itself is clear.
  */
-function tighten(points: Vector3[], all: readonly Obstacle[], radius: number, unit: number): CatmullRomCurve3 | null {
+function tighten(points: Vector3[], obstacles: Obstacles, radius: number, unit: number): CatmullRomCurve3 | null {
   const margin = radius + ROUTING.margin;
   for (let round = 0; round < 6; round++) {
     const curve = new CatmullRomCurve3(points, false, 'centripetal');
-    if (isClear(curve, all, radius, unit)) return curve;
+    if (isClear(curve, obstacles, radius, unit)) return curve;
     const length = curve.getLength();
     const n = Math.ceil(length / ROUTING.fineSpacing);
     points = curve.getSpacedPoints(n);
-    points.forEach((point, i) => (i / n) * length > ROUTING.stub && i < n && escape(point, all, margin, radius));
+    points.forEach((point, i) => (i / n) * length > ROUTING.stub && i < n && escape(point, obstacles, margin, radius));
   }
   return null;
 }
 
 /** Routes `count` cables from the computers' back and underside ports into the trunk and out across the floor. */
 export function routeCables(layout: Layout, count: number): CableRoute[] {
+  const router = cableRouter(layout, count);
+  for (;;) {
+    const step = router.next();
+    if (step.done) return step.value;
+  }
+}
+
+/** `routeCables` one cable at a time, so a caller on the page's thread can yield between cables. */
+export function* cableRouter(layout: Layout, count: number): Generator<void, CableRoute[]> {
   const rng = mulberry32(4242);
-  const all = obstacles(layout);
-  const plugs = openPlugs(layout, all).sort((a, b) => Math.abs(a.at.x) - Math.abs(b.at.x));
+  const boxes = index(obstacles(layout));
+  const plugs = openPlugs(layout, boxes).sort((a, b) => Math.abs(a.at.x) - Math.abs(b.at.x));
   const used = plugs.slice(0, Math.max(Math.min(3, plugs.length), Math.ceil(plugs.length * 0.8)));
   const routes: CableRoute[] = [];
   // A route that cannot be made clear is dropped and the next plug takes its place.
@@ -241,11 +288,12 @@ export function routeCables(layout: Layout, count: number): CableRoute[] {
     const plug = used[i % used.length]!;
     // A second cable in the same socket sits beside the first rather than inside it.
     const shared = Math.floor(i / used.length);
-    const across = new Vector3(1, 0, 0).transformDirection(all[plug.unit]!.toWorld);
+    const across = new Vector3(1, 0, 0).transformDirection(boxes.all[plug.unit]!.toWorld);
     const at = plug.at.clone().addScaledVector(across, shared === 0 ? 0 : (shared % 2 ? -1 : 1) * 0.03);
     const radius = range(rng, ...ROUTING.radius);
-    const curve = tighten(relax(waypoints({ ...plug, at }, layout, rng), all, radius), all, radius, plug.unit);
+    const curve = tighten(relax(waypoints({ ...plug, at }, layout, rng), boxes, radius), boxes, radius, plug.unit);
     if (curve) routes.push({ curve, radius, unit: plug.unit });
+    yield;
   }
   return routes;
 }

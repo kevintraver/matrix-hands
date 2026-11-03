@@ -220,9 +220,14 @@ async function runCamera(scenario) {
   const pulsesAtScreenshot = (await stats(page)).pulses;
   await setDebugVisible(true);
   await page.screenshot({ path: path.join(OUT, `${scenario.name}-debug.png`) });
-  const telemetryProbe = await page.evaluate(() =>
-    fetch('https://odml.pa.googleapis.com/v1/log', { method: 'POST', body: 'probe' }).then(() => 'sent', () => 'refused'),
-  );
+  const probeTelemetry = (target) =>
+    target.evaluate(() =>
+      fetch('https://odml.pa.googleapis.com/v1/log', { method: 'POST', body: 'probe' }).then(() => 'sent', () => 'refused'),
+    );
+  const telemetryProbe = await probeTelemetry(page);
+  // MediaPipe, and so its usage logger, runs in the hand-tracking worker; it must inherit the page's policy.
+  const workers = page.workers();
+  const workerTelemetryProbe = workers.length === 1 ? await probeTelemetry(workers[0]) : `${workers.length} workers`;
   const green = await brightGreenShare(page, png);
   const spots = await hotSpots(page, png);
   await browser.close();
@@ -244,6 +249,7 @@ async function runCamera(scenario) {
     ['no page errors', errors.length === 0],
     ['no response from another origin', foreign.size === 0],
     ['page cannot reach the telemetry endpoint', telemetryProbe === 'refused'],
+    ['hand-tracking worker cannot reach the telemetry endpoint', workerTelemetryProbe === 'refused'],
   ];
   const summary =
     `delegate=${s.delegate} tier=${s.tier} hands=${s.hands} detections=${s.detections} framesWithHands=${s.framesWithHands} ` +

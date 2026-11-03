@@ -26,4 +26,6 @@ export default defineConfig({
   base: './',
   plugins: [react(), contentSecurityPolicy()],
   build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
+  // A module worker, so MediaPipe loads its ES-module wasm loader with import().
+  worker: { format: 'es' },
 });

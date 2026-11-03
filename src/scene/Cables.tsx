@@ -1,21 +1,23 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   BufferAttribute,
+  BufferGeometry,
   DataTexture,
   FloatType,
   NearestFilter,
   RGBAFormat,
   ShaderMaterial,
+  Sphere,
   TubeGeometry,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { reportDebug } from '../debug';
 import type { Flow } from './flow';
 import type { Layout } from './layout';
-import { PULSES, PULSE_TEXELS, countPulses, createPulseField, spawnPulses } from './pulses';
+import { PULSES, PULSE_TEXELS, countPulses, createPulseField, spawnPulses, type PulseField } from './pulses';
 import { mulberry32 } from './rng';
-import { routeCables } from './cableRoutes';
+import { cableRouter, type CableRoute } from './cableRoutes';
 
 const vertexShader = /* glsl */ `
 attribute float aCable;
@@ -68,9 +70,26 @@ void main() {
 `;
 
 const TUBE_SEGMENT = 0.06;
+/** Routing work per slice before yielding to the browser; one cable takes a few milliseconds. */
+const SLICE_MS = 8;
 
-function buildCables(layout: Layout, count: number) {
-  const routes = routeCables(layout, count);
+type Built = { geometry: BufferGeometry; field: PulseField; texture: DataTexture };
+
+/** Routing a whole tree takes hundreds of milliseconds on a phone, so it runs a cable at a time between frames. */
+async function routeInSlices(layout: Layout, count: number, cancelled: () => boolean): Promise<CableRoute[] | null> {
+  const router = cableRouter(layout, count);
+  let deadline = performance.now() + SLICE_MS;
+  for (;;) {
+    const step = router.next();
+    if (step.done) return step.value;
+    if (performance.now() < deadline) continue;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (cancelled()) return null;
+    deadline = performance.now() + SLICE_MS;
+  }
+}
+
+function buildCables(routes: readonly CableRoute[]): Built {
   const tubes = routes.map(({ curve, radius }, i) => {
     const length = curve.getLength();
     const tube = new TubeGeometry(curve, Math.ceil(length / TUBE_SEGMENT), radius, 5, false);
@@ -79,41 +98,68 @@ function buildCables(layout: Layout, count: number) {
     tube.setAttribute('aLength', new BufferAttribute(new Float32Array(vertices).fill(length), 1));
     return { tube, length };
   });
-  return { geometry: mergeGeometries(tubes.map((t) => t.tube)), lengths: tubes.map((t) => t.length) };
+  const lengths = tubes.map((t) => t.length);
+  const field = createPulseField(lengths);
+  const texture = new DataTexture(field.data, PULSE_TEXELS, lengths.length, RGBAFormat, FloatType);
+  texture.minFilter = texture.magFilter = NearestFilter;
+  texture.needsUpdate = true;
+  return { geometry: mergeGeometries(tubes.map((t) => t.tube)), field, texture };
+}
+
+/**
+ * Stands in until routing finishes. It carries the tube's position and normal attributes, because a mesh's
+ * attributes select its shader variant, and the precompiled variant has to be the one the cables draw with.
+ */
+function createPlaceholder(): BufferGeometry {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(0), 3));
+  geometry.setAttribute('normal', new BufferAttribute(new Float32Array(0), 3));
+  geometry.boundingSphere = new Sphere();
+  return geometry;
+}
+
+/** Exists before the cables do, so the shader compiles with the rest of the scene. */
+function createCableMaterial(): ShaderMaterial {
+  return new ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    toneMapped: false,
+    defines: { TEXELS: PULSE_TEXELS },
+    uniforms: {
+      uPulses: { value: null },
+      uTime: { value: 0 },
+      uSpeed: { value: PULSES.speed },
+      uPulseLength: { value: PULSES.length },
+      uFlowUp: { value: PULSES.direction === 'up' ? 1 : 0 },
+    },
+  });
 }
 
 export function Cables({ layout, count, flow }: { layout: Layout; count: number; flow: Flow }) {
-  const { geometry, material, field, texture } = useMemo(() => {
-    const { geometry, lengths } = buildCables(layout, count);
-    const field = createPulseField(lengths);
-    const texture = new DataTexture(field.data, PULSE_TEXELS, lengths.length, RGBAFormat, FloatType);
-    texture.minFilter = texture.magFilter = NearestFilter;
-    texture.needsUpdate = true;
-    const material = new ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      toneMapped: false,
-      defines: { TEXELS: PULSE_TEXELS },
-      uniforms: {
-        uPulses: { value: texture },
-        uTime: { value: 0 },
-        uSpeed: { value: PULSES.speed },
-        uPulseLength: { value: PULSES.length },
-        uFlowUp: { value: PULSES.direction === 'up' ? 1 : 0 },
-      },
+  const material = useMemo(createCableMaterial, []);
+  const placeholder = useMemo(createPlaceholder, []);
+  const [built, setBuilt] = useState<Built | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void routeInSlices(layout, count, () => cancelled).then((routes) => {
+      if (routes && !cancelled) setBuilt(buildCables(routes));
     });
-    return { geometry, material, field, texture };
+    return () => {
+      cancelled = true;
+    };
   }, [layout, count]);
   const rng = useMemo(() => mulberry32(99), []);
   const spawned = useRef(0);
 
   useFrame(({ clock }, delta) => {
+    if (!built) return;
     const now = clock.elapsedTime;
+    material.uniforms.uPulses!.value = built.texture;
     material.uniforms.uTime!.value = now;
-    const started = spawnPulses(field, flow.motion, now, delta, rng);
-    if (started > 0) texture.needsUpdate = true;
+    const started = spawnPulses(built.field, flow.motion, now, delta, rng);
+    if (started > 0) built.texture.needsUpdate = true;
     spawned.current += started;
-    reportDebug({ pulses: countPulses(field, now), pulsesSpawned: spawned.current });
+    reportDebug({ pulses: countPulses(built.field, now), pulsesSpawned: spawned.current });
   });
-  return <mesh geometry={geometry} material={material} />;
+  return <mesh geometry={built?.geometry ?? placeholder} material={material} />;
 }

@@ -26,9 +26,10 @@ type Props = {
   seed: number;
   /** Separate from `seed`, so the colours can change without moving any unit. */
   colorSeed: number;
+  onCompiled: () => void;
 };
 
-export function Scene({ tracker, hand, quality, seed, colorSeed }: Props) {
+export function Scene({ tracker, hand, quality, seed, colorSeed, onCompiled }: Props) {
   const layout = useMemo(() => createLayout(quality.units, quality.tree, seed), [quality, seed]);
   const finishes = useMemo(() => assignFinishes(layout, mulberry32(colorSeed)), [layout, colorSeed]);
   const flow = useMemo<Flow>(() => ({ motion: 0 }), []);
@@ -56,7 +57,7 @@ export function Scene({ tracker, hand, quality, seed, colorSeed }: Props) {
       <Cables layout={layout} count={quality.cables} flow={flow} />
       <MatrixRain radius={ORBIT.rainRadius} height={50} bottom={-4} centerZ={TREE_CENTER_Z} />
       <Floor radius={Math.max(layout.width, layout.height) * 2.5} centerZ={TREE_CENTER_Z} />
-      <Effects quality={quality} />
+      <Effects quality={quality} onCompiled={onCompiled} />
       {DEBUG && <FpsMeter />}
       {DEBUG && <Stats className="stats-panel" />}
     </>
