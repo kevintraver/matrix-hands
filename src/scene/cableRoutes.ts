@@ -26,7 +26,7 @@ const ROUTING = {
   /** Share of the way each point moves toward its neighbours' midpoint per iteration. */
   smoothing: 0.3,
   radius: [0.014, 0.03] as const,
-  /** Air in front of a screen that cables keep out of, so none hangs across a hand. */
+  /** Depth of air in front of a screen unit's face that cables keep out of, so none hangs across a monitor. */
   screenKeepOut: 0.5,
 };
 
@@ -61,7 +61,7 @@ function obstacle(unit: number, toWorld: Matrix4, [w, h, d]: readonly [number, n
   return { unit, toWorld, toLocal: toWorld.clone().invert(), w, h, d, center, reach: Math.hypot(w, h, d) / 2 };
 }
 
-/** One box per unit, then one keep-out in front of each screen. Index `i < placements.length` is unit `i`. */
+/** One box per unit, then a keep-out in front of the face of each unit with a screen. Index `i < placements.length` is unit `i`. */
 function obstacles(layout: Layout): Obstacle[] {
   const units = layout.placements.map((p, unit) => {
     const toWorld = new Matrix4().compose(
@@ -71,15 +71,15 @@ function obstacles(layout: Layout): Obstacle[] {
     );
     return obstacle(unit, toWorld, UNITS[p.kind].size);
   });
-  const screens = layout.placements.flatMap((p, unit) => {
-    const screen = UNITS[p.kind].screen;
+  const faces = layout.placements.flatMap((p, unit) => {
+    const { screen, size } = UNITS[p.kind];
     if (!screen) return [];
-    const [x, y, z] = screen.offset;
+    const [w, h, d] = size;
     const depth = ROUTING.screenKeepOut;
-    const toWorld = units[unit]!.toWorld.clone().multiply(new Matrix4().makeTranslation(x, y - screen.h / 2, z + depth / 2));
-    return [obstacle(unit, toWorld, [screen.w, screen.h, depth])];
+    const toWorld = units[unit]!.toWorld.clone().multiply(new Matrix4().makeTranslation(0, 0, d / 2 + depth / 2));
+    return [obstacle(unit, toWorld, [w, h, depth])];
   });
-  return [...units, ...screens];
+  return [...units, ...faces];
 }
 
 const local = new Vector3();
