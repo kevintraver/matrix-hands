@@ -1,19 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { DEBUG, reportDebug } from './debug';
 import { QUALITY, pickTier } from './quality';
-import type { TrackerState } from './types';
+import { createHandTracker } from './tracking/handTracker';
+import { useTrackerState } from './tracking/useTrackerState';
+import { DebugVideo } from './ui/DebugVideo';
 import { StartOverlay } from './ui/StartOverlay';
 
+const TIER = pickTier();
+const QUALITY_NOW = QUALITY[TIER];
+const tracker = createHandTracker(QUALITY_NOW.detectHz);
+reportDebug({ tier: TIER });
+
 export function App() {
-  const [tier] = useState(pickTier);
-  const quality = QUALITY[tier];
-  const [state, setState] = useState<TrackerState>({ kind: 'idle' });
+  const state = useTrackerState(tracker);
+  const [entered, setEntered] = useState(false);
+  useEffect(() => tracker.preload(), []);
+  const enter = () => {
+    setEntered(true);
+    tracker.start();
+  };
   return (
     <>
-      <Canvas dpr={[...quality.dpr]} camera={{ fov: 40, position: [0, 5, 14] }} gl={{ antialias: true }}>
+      <Canvas dpr={[...QUALITY_NOW.dpr]} camera={{ fov: 40, position: [0, 5, 14] }} gl={{ antialias: true }}>
         <color attach="background" args={['#000']} />
       </Canvas>
-      <StartOverlay state={state} onEnter={() => setState({ kind: 'starting' })} />
+      {DEBUG && entered && <DebugVideo tracker={tracker} />}
+      <StartOverlay state={state} onEnter={enter} />
     </>
   );
 }
