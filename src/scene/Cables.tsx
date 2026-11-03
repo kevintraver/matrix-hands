@@ -54,7 +54,8 @@ float pulse(float birth, float gain, float along) {
 
 void main() {
   float light = 0.35 + 0.65 * max(dot(vNormal, normalize(vec3(-0.4, 0.8, 0.5))), 0.0);
-  float rim = pow(1.0 - abs(vNormal.z), 3.0);
+  // MSAA can extrapolate the normal past unit length; a negative pow base is NaN, which bloom spreads into a white orb.
+  float rim = pow(max(1.0 - abs(vNormal.z), 0.0), 3.0);
   vec3 base = vec3(0.025, 0.03, 0.028) * light + vec3(0.02, 0.1, 0.045) * rim;
   float along = (uFlowUp > 0.5 ? 1.0 - vUv.x : vUv.x) * vLength;
   int row = int(vCable + 0.5);

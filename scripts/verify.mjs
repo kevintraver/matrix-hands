@@ -104,6 +104,48 @@ const brightGreenShare = (page, png) =>
     return n / (d.length / 4);
   }, `data:image/png;base64,${png.toString('base64')}`);
 
+/**
+ * White-hot clusters (every channel >= 240) in the lower part of the frame, where the trunk and
+ * cables are. Lit hand outlines stay green and rain fades out near the floor, so on a still or
+ * empty scene any such cluster is a static light the viewer would read as cable glow.
+ */
+const hotSpots = (page, png) =>
+  page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const w = 480;
+    const h = Math.round((w * img.height) / img.width);
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    const top = Math.floor(h * 0.45);
+    const hot = (x, y) => y >= top && Math.min(d[(y * w + x) * 4], d[(y * w + x) * 4 + 1], d[(y * w + x) * 4 + 2]) >= 240;
+    const seen = new Uint8Array(w * h);
+    const spots = [];
+    for (let y = top; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        if (seen[y * w + x] || !hot(x, y)) continue;
+        const stack = [[x, y]];
+        seen[y * w + x] = 1;
+        let size = 0;
+        while (stack.length) {
+          const [px, py] = stack.pop();
+          size++;
+          for (const [nx, ny] of [[px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]]) {
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h || seen[ny * w + nx] || !hot(nx, ny)) continue;
+            seen[ny * w + nx] = 1;
+            stack.push([nx, ny]);
+          }
+        }
+        spots.push({ x: Math.round((x / w) * 100), y: Math.round((y / h) * 100), size });
+      }
+    return spots;
+  }, `data:image/png;base64,${png.toString('base64')}`);
+
 async function run(scenario) {
   const video = buildFixture(scenario.fixture);
   const browser = await chromium.launch({
@@ -155,15 +197,20 @@ async function run(scenario) {
     flow = await sampleFlow(page, 6000);
   }
   const s = await stats(page);
+  const setDebugVisible = (visible) =>
+    page.evaluate((v) => {
+      for (const el of document.querySelectorAll('.debug-video, .stats-panel')) el.style.visibility = v ? '' : 'hidden';
+    }, visible);
+  await setDebugVisible(false);
+  const png = await page.screenshot({ path: path.join(OUT, `${scenario.name}.png`) });
+  const pulsesAtScreenshot = (await stats(page)).pulses;
+  await setDebugVisible(true);
+  await page.screenshot({ path: path.join(OUT, `${scenario.name}-debug.png`) });
   const telemetryProbe = await page.evaluate(() =>
     fetch('https://odml.pa.googleapis.com/v1/log', { method: 'POST', body: 'probe' }).then(() => 'sent', () => 'refused'),
   );
-  const hideDebug = await page.addStyleTag({ content: '.debug-video, .stats-panel { display: none !important; }' });
-  const png = await page.screenshot({ path: path.join(OUT, `${scenario.name}.png`) });
-  const pulsesAtScreenshot = (await stats(page)).pulses;
-  await hideDebug.evaluate((el) => el.remove());
-  await page.screenshot({ path: path.join(OUT, `${scenario.name}-debug.png`) });
   const green = await brightGreenShare(page, png);
+  const spots = await hotSpots(page, png);
   await browser.close();
 
   const checks = [
@@ -179,6 +226,7 @@ async function run(scenario) {
       ],
       none: ['no hand: no pulses start or fly', flow.spawned === 0 && flow.maxPulses === 0],
     }[scenario.flow]].filter(Boolean),
+    ...(['still', 'none'].includes(scenario.flow) ? [['no static glow in the trunk and cable region', spots.length === 0]] : []),
     ['no page errors', errors.length === 0],
     ['no response from another origin', foreign.size === 0],
     ['page cannot reach the telemetry endpoint', telemetryProbe === 'refused'],
@@ -188,6 +236,7 @@ async function run(scenario) {
     stats: s,
     brightGreenShare: Number(green.toFixed(5)),
     flow: { ...flow, pulsesAtScreenshot },
+    hotSpots: spots,
     errors,
     foreign: [...foreign],
     blockedByPolicy: blockedByPolicy.length,
@@ -210,6 +259,7 @@ try {
     for (const [label, ok] of r.checks) console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}`);
     if (r.errors.length) console.log('  errors:', r.errors.slice(0, 5));
     if (r.foreign.length) console.log('  responses from other origins:', r.foreign);
+    if (r.hotSpots.length) console.log('  white-hot spots (x%, y%, px):', JSON.stringify(r.hotSpots.slice(0, 8)));
     if (r.blockedByPolicy) console.log(`  telemetry attempts refused by CSP: ${r.blockedByPolicy}`);
   }
 } finally {
